@@ -8,7 +8,7 @@ on:
 jobs:
   registry:
     name: Publish Docker image to GitHub registry
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write

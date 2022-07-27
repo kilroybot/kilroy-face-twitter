@@ -34,7 +34,7 @@ on:
 jobs:
   test-docker:
     name: Run tests inside Docker container
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - # get repository code
         name: Checkout
