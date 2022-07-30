@@ -3,7 +3,7 @@
 
 [tool.poetry]
 name = "kilroy-face-twitter"
-version = "0.1.0"
+version = "0.2.0"
 description = "kilroy face for Twitter 🐦"
 readme = "kilroy_face_twitter/README.md"
 authors = ["kilroy <kilroymail@pm.me>"]
@@ -15,7 +15,11 @@ packages = [{ include = "kilroy-face-twitter", from = "kilroy_face_twitter/src" 
 
 [tool.poetry.dependencies]
 python = "^3.9"
-typer = { version = "^0.4", extras = ["all"] }
+typer = { version = "^0.6", extras = ["all"] }
+kilroy-face-server-py-sdk = "^0.3"
+tweepy = { version = "^4.10", extras = ["async"] }
+asyncstdlib = "^3.10"
+httpx = "^0.23"
 
 # dev
 

@@ -3,17 +3,58 @@
 This module provides basic CLI entrypoint.
 
 """
+import asyncio
+import logging
+from enum import Enum
+from logging import Logger
 
 import typer
+from kilroy_ws_server_py_sdk import Server
+
+from kilroy_face_twitter.config import FaceConfig, ServerConfig
+from kilroy_face_twitter.controller import TwitterController
+from kilroy_face_twitter.face import TwitterFace
 
 cli = typer.Typer()  # this is actually callable and thus can be an entry point
 
 
+class Verbosity(str, Enum):
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+
+
+def get_logger(verbosity: Verbosity) -> Logger:
+    logging.basicConfig()
+    logger = logging.getLogger("kilroy-face-twitter")
+    logger.setLevel(verbosity.value)
+    return logger
+
+
+async def run(
+    face_config: FaceConfig, server_config: ServerConfig, logger: Logger
+) -> None:
+    face = await TwitterFace.build(face_config)
+    controller = TwitterController(face)
+    server = Server(controller, logger)
+    await server.run(**server_config.dict())
+
+
 @cli.command()
-def main(x: int = typer.Option(default=1, help="Dummy argument.")) -> None:
+def main(
+    verbosity: Verbosity = typer.Option(
+        default="INFO", help="Verbosity level."
+    )
+) -> None:
     """Command line interface for kilroy-face-twitter."""
 
-    typer.echo(x)  # typer.echo instead of print, because it's better
+    face_config = FaceConfig.build()
+    server_config = ServerConfig.build()
+    logger = get_logger(verbosity)
+
+    asyncio.run(run(face_config, server_config, logger))
 
 
 if __name__ == "__main__":
