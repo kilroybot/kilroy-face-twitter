@@ -1,18 +1,27 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import AsyncIterable, Generic, Optional, Tuple, Type
+from typing import AsyncIterable, Generic, Iterable, Optional, Tuple
 
+from kilroy_face_server_py_sdk import (
+    BaseState,
+    Categorizable,
+    ConfigurableWithLoadableState,
+    Parameter,
+    StateType,
+)
 from tweepy import Tweet
 
 from kilroy_face_twitter.client import TwitterClient
-from kilroy_face_twitter.face.models import TweetFields, TweetIncludes
-from kilroy_face_twitter.face.utils import Configurable
-from kilroy_face_twitter.types import ScrapingType, StateType
-from kilroy_face_twitter.utils import Deepcopyable
+from kilroy_face_twitter.models import TweetFields, TweetIncludes
 
 
-class Scraper(Configurable[StateType], Generic[StateType], ABC):
+class Scraper(
+    ConfigurableWithLoadableState[StateType],
+    Categorizable,
+    Generic[StateType],
+    ABC,
+):
     @abstractmethod
     def scrap(
         self,
@@ -23,28 +32,20 @@ class Scraper(Configurable[StateType], Generic[StateType], ABC):
     ) -> AsyncIterable[Tuple[Tweet, TweetIncludes]]:
         pass
 
-    @staticmethod
-    @abstractmethod
-    def scraping_type() -> ScrapingType:
-        pass
-
-    @classmethod
-    def for_type(cls, scraping_type: ScrapingType) -> Type["Scraper"]:
-        for scorer in cls.__subclasses__():
-            if scorer.scraping_type() == scraping_type:
-                return scorer
-        raise ValueError(f'Scraper for type "{scraping_type}" not found.')
-
 
 # Timeline
 
 
 @dataclass
-class TimelineScraperState(Deepcopyable):
+class TimelineScraperState(BaseState):
     pass
 
 
 class TimelineScraper(Scraper[TimelineScraperState]):
+    @classmethod
+    def category(cls) -> str:
+        return "timeline"
+
     async def scrap(
         self,
         client: TwitterClient,
@@ -81,9 +82,8 @@ class TimelineScraper(Scraper[TimelineScraperState]):
 
             params["pagination_token"] = response.meta["next_token"]
 
-    @staticmethod
-    def scraping_type() -> ScrapingType:
-        return "timeline"
-
     async def _create_initial_state(self) -> TimelineScraperState:
         return TimelineScraperState()
+
+    async def _get_parameters(self) -> Iterable[Parameter]:
+        return []
