@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kilroy-face-twitter"
-version = "0.2.0"
+version = "0.2.1"
 description = "kilroy face for Twitter 🐦"
 readme = "README.md"
 authors = ["kilroy <kilroymail@pm.me>"]
