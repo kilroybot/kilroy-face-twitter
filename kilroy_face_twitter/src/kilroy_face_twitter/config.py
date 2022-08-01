@@ -3,19 +3,17 @@ from typing import Any, Dict
 
 from pydantic import BaseModel
 
-from kilroy_face_twitter.types import PostType, ScoringType, ScrapingType
-
 
 class FaceConfig(BaseModel):
     consumer_key: str
     consumer_secret: str
     access_token: str
     access_token_secret: str
-    post_type: PostType
+    post_type: str
     processors_params: Dict[str, Dict[str, Any]] = {}
-    default_scoring_type: ScoringType
+    default_scoring_type: str
     scorers_params: Dict[str, Dict[str, Any]] = {}
-    default_scraping_type: ScrapingType
+    default_scraping_type: str
     scrapers_params: Dict[str, Dict[str, Any]] = {}
 
     @classmethod
@@ -37,7 +35,7 @@ class FaceConfig(BaseModel):
             ),
             post_type=kwargs.get(
                 "post_type",
-                os.getenv("KILROY_FACE_TWITTER_POST_TYPE", "text"),
+                os.getenv("KILROY_FACE_TWITTER_POST_TYPE", "text-or-image"),
             ),
             default_scoring_type=kwargs.get(
                 "scoring_type",

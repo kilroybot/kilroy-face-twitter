@@ -1,26 +1,30 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, Type
+from typing import Generic, Iterable
 
+from kilroy_face_server_py_sdk import (
+    BaseState,
+    Categorizable,
+    ConfigurableWithLoadableState,
+    Parameter,
+    StateType,
+)
 from tweepy import Tweet
 
 from kilroy_face_twitter.client import TwitterClient
-from kilroy_face_twitter.face.models import TweetFields, TweetIncludes
-from kilroy_face_twitter.face.utils import Configurable
-from kilroy_face_twitter.types import ScoringType, StateType
-from kilroy_face_twitter.utils import Deepcopyable
+from kilroy_face_twitter.models import TweetFields, TweetIncludes
 
 
-class Scorer(Configurable[StateType], Generic[StateType], ABC):
+class Scorer(
+    ConfigurableWithLoadableState[StateType],
+    Categorizable,
+    Generic[StateType],
+    ABC,
+):
     @abstractmethod
     async def score(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
     ) -> float:
-        pass
-
-    @staticmethod
-    @abstractmethod
-    def scoring_type() -> ScoringType:
         pass
 
     @staticmethod
@@ -28,31 +32,24 @@ class Scorer(Configurable[StateType], Generic[StateType], ABC):
     def needed_fields() -> TweetFields:
         pass
 
-    @classmethod
-    def for_type(cls, scoring_type: ScoringType) -> Type["Scorer"]:
-        for scorer in cls.__subclasses__():
-            if scorer.scoring_type() == scoring_type:
-                return scorer
-        raise ValueError(f'Scorer for type "{scoring_type}" not found.')
-
 
 # Likes
 
 
 @dataclass
-class LikesScorerState(Deepcopyable):
+class LikesScorerState(BaseState):
     pass
 
 
 class LikesScorer(Scorer[LikesScorerState]):
+    @classmethod
+    def category(cls) -> str:
+        return "likes"
+
     async def score(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
     ) -> float:
         return tweet.public_metrics["like_count"]
-
-    @staticmethod
-    def scoring_type() -> ScoringType:
-        return "likes"
 
     @staticmethod
     def needed_fields() -> TweetFields:
@@ -61,24 +58,27 @@ class LikesScorer(Scorer[LikesScorerState]):
     async def _create_initial_state(self) -> LikesScorerState:
         return LikesScorerState()
 
+    async def _get_parameters(self) -> Iterable[Parameter]:
+        return []
+
 
 # Retweets
 
 
 @dataclass
-class RetweetsScorerState(Deepcopyable):
+class RetweetsScorerState(BaseState):
     pass
 
 
 class RetweetsScorer(Scorer[RetweetsScorerState]):
+    @classmethod
+    def category(cls) -> str:
+        return "retweets"
+
     async def score(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
     ) -> float:
         return tweet.public_metrics["retweet_count"]
-
-    @staticmethod
-    def scoring_type() -> ScoringType:
-        return "retweets"
 
     @staticmethod
     def needed_fields() -> TweetFields:
@@ -87,24 +87,27 @@ class RetweetsScorer(Scorer[RetweetsScorerState]):
     async def _create_initial_state(self) -> RetweetsScorerState:
         return RetweetsScorerState()
 
+    async def _get_parameters(self) -> Iterable[Parameter]:
+        return []
+
 
 # Impressions
 
 
 @dataclass
-class ImpressionsScorerState(Deepcopyable):
+class ImpressionsScorerState(BaseState):
     pass
 
 
 class ImpressionsScorer(Scorer[ImpressionsScorerState]):
+    @classmethod
+    def category(cls) -> str:
+        return "impressions"
+
     async def score(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
     ) -> float:
         return tweet.non_public_metrics["impression_count"]
-
-    @staticmethod
-    def scoring_type() -> ScoringType:
-        return "impressions"
 
     @staticmethod
     def needed_fields() -> TweetFields:
@@ -112,3 +115,6 @@ class ImpressionsScorer(Scorer[ImpressionsScorerState]):
 
     async def _create_initial_state(self) -> ImpressionsScorerState:
         return ImpressionsScorerState()
+
+    async def _get_parameters(self) -> Iterable[Parameter]:
+        return []
