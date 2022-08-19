@@ -1,212 +1,169 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
+    Any,
     AsyncIterable,
     Dict,
-    Iterable,
     Optional,
+    Set,
     Tuple,
 )
 from uuid import UUID
 
-from asyncstdlib import islice
+from aiostream import stream
 from kilroy_face_server_py_sdk import (
-    BaseState,
+    CategorizableBasedParameter,
+    Configurable,
     Face,
-    JSON,
     JSONSchema,
+    Metadata,
     Parameter,
+    SerializableModel,
+    classproperty,
 )
 from tweepy import Tweet
 
 from kilroy_face_twitter.client import TwitterClient
-from kilroy_face_twitter.config import FaceConfig
 from kilroy_face_twitter.models import TweetFields, TweetIncludes
-from kilroy_face_twitter.processors import Processor
+from kilroy_face_twitter.processors import (
+    Processor,
+)
 from kilroy_face_twitter.scorers import Scorer
 from kilroy_face_twitter.scrapers import Scraper
 
 
-@dataclass
-class TwitterFaceState(BaseState):
-    processor: Processor
+class TwitterFaceParams(SerializableModel):
+    consumer_key: str
+    consumer_secret: str
+    access_token: str
+    access_token_secret: str
+    post_type: str
     scoring_type: str
-    scorers: Dict[str, Scorer]
+    scorers_params: Dict[str, Dict[str, Any]] = {}
     scraping_type: str
-    scrapers: Dict[str, Scraper]
+    scrapers_params: Dict[str, Dict[str, Any]] = {}
+
+
+@dataclass
+class TwitterFaceState:
+    processor: Processor
+    scorer: Scorer
+    scorers_params: Dict[str, Dict[str, Any]]
+    scraper: Scraper
+    scrapers_params: Dict[str, Dict[str, Any]]
     client: TwitterClient
 
-    @property
-    def scorer(self) -> Scorer:
-        return self.scorers[self.scoring_type]
 
-    @property
-    def scraper(self) -> Scraper:
-        return self.scrapers[self.scraping_type]
-
-
-class ProcessorParameter(Parameter[TwitterFaceState, JSON]):
-    async def _get(self, state: TwitterFaceState) -> JSON:
-        return await state.processor.config.get()
-
-    async def _set(self, state: TwitterFaceState, value: JSON) -> None:
-        await state.processor.config.set(value)
-
-    async def name(self, state: TwitterFaceState) -> str:
-        return "processor"
-
-    async def schema(self, state: TwitterFaceState) -> JSON:
-        return {
-            "type": "object",
-            "properties": await state.processor.config.get_properties_schema(),
-        }
+class ScorerParameter(CategorizableBasedParameter[TwitterFaceState, Scorer]):
+    async def _get_params(
+        self, state: TwitterFaceState, category: str
+    ) -> Dict[str, Any]:
+        return {**state.scorers_params.get(category, {})}
 
 
-class ScorerParameter(Parameter[TwitterFaceState, JSON]):
-    async def _get(self, state: TwitterFaceState) -> JSON:
-        return {
-            "type": state.scoring_type,
-            "config": await state.scorer.config.get(),
-        }
-
-    async def _set(self, state: TwitterFaceState, value: JSON) -> None:
-        state.scoring_type = value["type"]
-        await state.scorer.config.set(value["config"])
-
-    async def name(self, state: TwitterFaceState) -> str:
-        return "scorer"
-
-    async def schema(self, state: TwitterFaceState) -> JSON:
-        return {
-            "type": "object",
-            "oneOf": [
-                {
-                    "type": "object",
-                    "properties": {
-                        "type": {
-                            "type": "string",
-                            "const": scoring_type,
-                        },
-                        "config": {
-                            "type": "object",
-                            "properties": await state.scorers[
-                                scoring_type
-                            ].config.get_properties_schema(),
-                        },
-                    },
-                }
-                for scoring_type in Scorer.all_categories()
-            ],
-        }
-
-
-class ScraperParameter(Parameter[TwitterFaceState, JSON]):
-    async def _get(self, state: TwitterFaceState) -> JSON:
-        return {
-            "type": state.scraping_type,
-            "config": await state.scraper.config.get(),
-        }
-
-    async def _set(self, state: TwitterFaceState, value: JSON) -> None:
-        state.scraping_type = value["type"]
-        await state.scraper.config.set(value["config"])
-
-    async def name(self, state: TwitterFaceState) -> str:
-        return "scraper"
-
-    async def schema(self, state: TwitterFaceState) -> JSON:
-        return {
-            "type": "object",
-            "oneOf": [
-                {
-                    "type": "object",
-                    "properties": {
-                        "type": {
-                            "type": "string",
-                            "const": scraping_type,
-                        },
-                        "config": {
-                            "type": "object",
-                            "properties": await state.scrapers[
-                                scraping_type
-                            ].config.get_properties_schema(),
-                        },
-                    },
-                }
-                for scraping_type in Scraper.all_categories()
-            ],
-        }
+class ScraperParameter(CategorizableBasedParameter[TwitterFaceState, Scraper]):
+    async def _get_params(
+        self, state: TwitterFaceState, category: str
+    ) -> Dict[str, Any]:
+        return {**state.scrapers_params.get(category, {})}
 
 
 class TwitterFace(Face[TwitterFaceState]):
-    def __init__(self, config: FaceConfig) -> None:
-        super().__init__()
-        self._face_config = config
-
-    async def _create_initial_state(self) -> TwitterFaceState:
-        return TwitterFaceState(
-            processor=await Processor.for_category(
-                self._face_config.post_type
-            ).build(
-                **self._face_config.processors_params.get(
-                    self._face_config.post_type, {}
-                )
-            ),
-            scoring_type=self._face_config.default_scoring_type,
-            scorers={
-                scoring_type: await Scorer.for_category(scoring_type).build(
-                    **self._face_config.scorers_params.get(scoring_type, {})
-                )
-                for scoring_type in Scorer.all_categories()
-            },
-            scraping_type=self._face_config.default_scraping_type,
-            scrapers={
-                scraping_type: await Scraper.for_category(scraping_type).build(
-                    **self._face_config.scrapers_params.get(scraping_type, {})
-                )
-                for scraping_type in Scraper.all_categories()
-            },
-            client=TwitterClient(
-                consumer_key=self._face_config.consumer_key,
-                consumer_secret=self._face_config.consumer_secret,
-                access_token=self._face_config.access_token,
-                access_token_secret=self._face_config.access_token_secret,
-            ),
+    @property
+    def metadata(self) -> Metadata:
+        return Metadata(
+            key="kilroy-face-twitter", description="Kilroy face for Twitter"
         )
 
     @property
     def post_schema(self) -> JSONSchema:
-        return self.state.processor.post_schema()
+        params = TwitterFaceParams(**self._kwargs)
+        return Processor.for_category(params.post_type).post_schema
 
-    async def _get_parameters(self) -> Iterable[Parameter]:
-        return [ProcessorParameter(), ScorerParameter(), ScraperParameter()]
+    @classproperty
+    def parameters(cls) -> Set[Parameter]:
+        return {
+            ScorerParameter(),
+            ScraperParameter(),
+        }
 
-    async def post(self, post: JSON) -> UUID:
-        return await self.state.processor.post(self.state.client, post)
+    @classmethod
+    async def _build_processor(cls, params: TwitterFaceParams) -> Processor:
+        return Processor.for_category(params.post_type)()
+
+    @staticmethod
+    async def _build_scorer(params: TwitterFaceParams) -> Scorer:
+        scorer_cls = Scorer.for_category(params.scoring_type)
+        scorer_params = params.scorers_params.get(params.scoring_type, {})
+        if issubclass(scorer_cls, Configurable):
+            scorer = await scorer_cls.build(**scorer_params)
+            await scorer.init()
+        else:
+            scorer = scorer_cls(**scorer_params)
+        return scorer
+
+    @staticmethod
+    async def _build_scraper(params: TwitterFaceParams) -> Scraper:
+        scraper_cls = Scraper.for_category(params.scraping_type)
+        scraper_params = params.scrapers_params.get(params.scraping_type, {})
+        if issubclass(scraper_cls, Configurable):
+            scraper = await scraper_cls.build(**scraper_params)
+            await scraper.init()
+        else:
+            scraper = scraper_cls(**scraper_params)
+        return scraper
+
+    @staticmethod
+    async def _build_client(params: TwitterFaceParams) -> TwitterClient:
+        return TwitterClient(
+            params.consumer_key,
+            params.consumer_secret,
+            params.access_token,
+            params.access_token_secret,
+        )
+
+    async def build_default_state(self) -> TwitterFaceState:
+        params = TwitterFaceParams(**self._kwargs)
+        return TwitterFaceState(
+            processor=await self._build_processor(params),
+            scorer=await self._build_scorer(params),
+            scorers_params=params.scorers_params,
+            scraper=await self._build_scraper(params),
+            scrapers_params=params.scrapers_params,
+            client=await self._build_client(params),
+        )
+
+    async def cleanup(self) -> None:
+        pass
+
+    async def post(self, post: Dict[str, Any]) -> UUID:
+        async with self.state.read_lock() as state:
+            return await state.processor.post(state.client, post)
 
     async def score(self, post_id: UUID) -> float:
-        response = await self.state.client.v2.get_tweet(
-            post_id.int,
-            user_auth=True,
-            **self.state.scorer.needed_fields().to_kwargs(),
-        )
-        tweet = response.data
-        includes = TweetIncludes.from_response(response)
-        return await self.state.scorer.score(
-            self.state.client, tweet, includes
-        )
+        async with self.state.read_lock() as state:
+            response = await state.client.v2.get_tweet(
+                post_id.int,
+                user_auth=True,
+                **state.scorer.needed_fields.to_kwargs(),
+            )
+            tweet = response.data
+            includes = TweetIncludes.from_response(response)
+            return await state.scorer.score(state.client, tweet, includes)
 
     async def scrap(
         self,
         limit: Optional[int] = None,
         before: Optional[datetime] = None,
         after: Optional[datetime] = None,
-    ) -> AsyncIterable[Tuple[UUID, JSON]]:
+    ) -> AsyncIterable[Tuple[UUID, Dict[str, Any]]]:
+        state = await self.state.value.fetch()
+
         async def fetch(
             client: TwitterClient,
             twts: AsyncIterable[Tuple[Tweet, TweetIncludes]],
             processor: Processor,
-        ) -> AsyncIterable[Tuple[UUID, JSON]]:
+        ) -> AsyncIterable[Tuple[UUID, Dict[str, Any]]]:
             async for tweet, includes in twts:
                 uuid = UUID(int=tweet.id)
                 try:
@@ -215,19 +172,16 @@ class TwitterFace(Face[TwitterFaceState]):
                     continue
                 yield uuid, post
 
-        fields = self.state.processor.needed_fields() + TweetFields(
-            tweet_fields=["id"]
-        )
+        fields = state.processor.needed_fields
+        fields = fields + TweetFields(tweet_fields=["id"])
 
-        tweets = self.state.scraper.scrap(
-            self.state.client,
-            fields,
-            before,
-            after,
-        )
-        posts = islice(
-            fetch(self.state.client, tweets, self.state.processor), limit
-        )
+        tweets = state.scraper.scrap(state.client, fields, before, after)
+        posts = fetch(state.client, tweets, state.processor)
+        if limit is not None:
+            posts = stream.take(posts, limit)
+        else:
+            posts = stream.iterate(posts)
 
-        async for post_id, post in posts:
-            yield post_id, post
+        async with posts.stream() as streamer:
+            async for post_id, post in streamer:
+                yield post_id, post
