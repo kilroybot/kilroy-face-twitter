@@ -1,27 +1,20 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from datetime import datetime
-from typing import AsyncIterable, Generic, Iterable, Optional, Tuple
+from typing import AsyncIterable, Optional, Tuple
 
-from kilroy_face_server_py_sdk import (
-    BaseState,
-    Categorizable,
-    ConfigurableWithLoadableState,
-    Parameter,
-    StateType,
-)
+from kilroy_face_server_py_sdk import Categorizable, classproperty, normalize
 from tweepy import Tweet
 
 from kilroy_face_twitter.client import TwitterClient
 from kilroy_face_twitter.models import TweetFields, TweetIncludes
 
 
-class Scraper(
-    ConfigurableWithLoadableState[StateType],
-    Categorizable,
-    Generic[StateType],
-    ABC,
-):
+class Scraper(Categorizable, ABC):
+    @classproperty
+    def category(cls) -> str:
+        name: str = cls.__name__
+        return normalize(name.removesuffix("Scraper"))
+
     @abstractmethod
     def scrap(
         self,
@@ -36,16 +29,7 @@ class Scraper(
 # Timeline
 
 
-@dataclass
-class TimelineScraperState(BaseState):
-    pass
-
-
-class TimelineScraper(Scraper[TimelineScraperState]):
-    @classmethod
-    def category(cls) -> str:
-        return "timeline"
-
+class TimelineScraper(Scraper):
     async def scrap(
         self,
         client: TwitterClient,
@@ -81,9 +65,3 @@ class TimelineScraper(Scraper[TimelineScraperState]):
                 break
 
             params["pagination_token"] = response.meta["next_token"]
-
-    async def _create_initial_state(self) -> TimelineScraperState:
-        return TimelineScraperState()
-
-    async def _get_parameters(self) -> Iterable[Parameter]:
-        return []

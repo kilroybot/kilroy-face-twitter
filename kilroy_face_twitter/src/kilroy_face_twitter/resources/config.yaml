@@ -1,0 +1,11 @@
+face:
+  consumerKey: XXXXXXXXXXXXXXXXXXXXXXXXX
+  consumerSecret: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  accessToken: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  accessTokenSecret: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  postType: textOrImage
+  scoringType: likes
+  scrapingType: timeline
+server:
+  host: localhost
+  port: 10001

@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 .idea/
+
+/config.yaml
+/kilroy_face_twitter/config.yaml

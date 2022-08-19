@@ -1,66 +1,31 @@
-import os
-from typing import Any, Dict
+from copy import deepcopy
+from typing import Any, Dict, Optional, TextIO
 
-from pydantic import BaseModel
+import yaml
+from deepmerge import Merger
 
+from kilroy_face_twitter import resource_text
 
-class FaceConfig(BaseModel):
-    consumer_key: str
-    consumer_secret: str
-    access_token: str
-    access_token_secret: str
-    post_type: str
-    processors_params: Dict[str, Dict[str, Any]] = {}
-    default_scoring_type: str
-    scorers_params: Dict[str, Dict[str, Any]] = {}
-    default_scraping_type: str
-    scrapers_params: Dict[str, Dict[str, Any]] = {}
-
-    @classmethod
-    def build(cls, **kwargs) -> "FaceConfig":
-        return cls(
-            consumer_key=kwargs.get(
-                "consumer_key", os.getenv("KILROY_FACE_TWITTER_CONSUMER_KEY")
-            ),
-            consumer_secret=kwargs.get(
-                "consumer_secret",
-                os.getenv("KILROY_FACE_TWITTER_CONSUMER_SECRET"),
-            ),
-            access_token=kwargs.get(
-                "access_token", os.getenv("KILROY_FACE_TWITTER_ACCESS_TOKEN")
-            ),
-            access_token_secret=kwargs.get(
-                "access_token_secret",
-                os.getenv("KILROY_FACE_TWITTER_ACCESS_TOKEN_SECRET"),
-            ),
-            post_type=kwargs.get(
-                "post_type",
-                os.getenv("KILROY_FACE_TWITTER_POST_TYPE", "text-or-image"),
-            ),
-            default_scoring_type=kwargs.get(
-                "scoring_type",
-                os.getenv("KILROY_FACE_TWITTER_DEFAULT_SCORING_TYPE", "likes"),
-            ),
-            default_scraping_type=kwargs.get(
-                "scraping_type",
-                os.getenv(
-                    "KILROY_FACE_TWITTER_DEFAULT_SCRAPING_TYPE", "timeline"
-                ),
-            ),
-        )
+_DEFAULT_MERGER = Merger(
+    [(list, ["override"]), (dict, ["merge"]), (set, ["override"])],
+    ["override"],
+    ["override"],
+)
 
 
-class ServerConfig(BaseModel):
-    host: str
-    port: int
+def _merge_configs(
+    default_config: Dict[str, Any],
+    user_config: Dict[str, any],
+    merger: Merger = _DEFAULT_MERGER,
+    **kwargs,
+) -> Dict[str, Any]:
+    config = deepcopy(default_config)
+    merger.merge(config, user_config)
+    merger.merge(config, kwargs)
+    return config
 
-    @classmethod
-    def build(cls, **kwargs) -> "ServerConfig":
-        return cls(
-            host=kwargs.get(
-                "host", os.getenv("KILROY_FACE_TWITTER_HOST", "localhost")
-            ),
-            port=kwargs.get(
-                "port", os.getenv("KILROY_FACE_TWITTER_PORT", 10001)
-            ),
-        )
+
+def get_config(f: Optional[TextIO] = None, **kwargs) -> Dict[str, Any]:
+    config = yaml.safe_load(resource_text("config.yaml"))
+    user_config = yaml.safe_load(f) if f else {}
+    return _merge_configs(config, user_config, **kwargs)

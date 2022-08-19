@@ -1,21 +1,15 @@
 import json
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from io import BytesIO
-from typing import Generic, Iterable, Optional
+from typing import Any, Dict, Optional
 from uuid import UUID
 
 from kilroy_face_server_py_sdk import (
-    BasePostModel,
-    BaseState,
     Categorizable,
-    ConfigurableWithLoadableState,
     ImageData,
     ImageOnlyPost,
     ImageWithOptionalTextPost,
     JSONSchema,
-    Parameter,
-    StateType,
     TextAndImagePost,
     TextData,
     TextOnlyPost,
@@ -23,14 +17,14 @@ from kilroy_face_server_py_sdk import (
     TextWithOptionalImagePost,
     base64_decode,
     base64_encode,
-    get_filename_from_url,
-    JSON,
+    classproperty,
+    normalize,
 )
 from tweepy import Media, Tweet
 
 from kilroy_face_twitter.client import TwitterClient
 from kilroy_face_twitter.models import TweetFields, TweetIncludes
-from kilroy_face_twitter.utils import download_image
+from kilroy_face_twitter.utils import download_image, get_filename_from_url
 
 TEXT_FIELDS = TweetFields(tweet_fields=["text"])
 IMAGE_FIELDS = TweetFields(
@@ -49,10 +43,6 @@ async def upload_image(client: TwitterClient, image: ImageData) -> Media:
 async def create_tweet(client: TwitterClient, *args, **kwargs) -> UUID:
     response = await client.v2.create_tweet(*args, **kwargs)
     return UUID(int=Tweet(response.data).id)
-
-
-def to_json(post: BasePostModel) -> JSON:
-    return json.loads(post.json())
 
 
 async def get_text_data(tweet: Tweet) -> Optional[TextData]:
@@ -81,137 +71,95 @@ async def get_image_data(
     )
 
 
-class Processor(
-    ConfigurableWithLoadableState[StateType],
-    Categorizable,
-    Generic[StateType],
-    ABC,
-):
+class Processor(Categorizable, ABC):
+    @classproperty
+    def category(cls) -> str:
+        name: str = cls.__name__
+        return normalize(name.removesuffix("Processor"))
+
     @abstractmethod
-    async def post(self, client: TwitterClient, post: JSON) -> UUID:
+    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
         pass
 
     @abstractmethod
     async def convert(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> JSON:
+    ) -> Dict[str, Any]:
         pass
 
-    @staticmethod
+    @classproperty
     @abstractmethod
-    def needed_fields() -> TweetFields:
+    def needed_fields(cls) -> TweetFields:
         pass
 
-    @staticmethod
+    @classproperty
     @abstractmethod
-    def post_schema() -> JSONSchema:
+    def post_schema(cls) -> JSONSchema:
         pass
 
 
 # Text only
 
 
-@dataclass
-class TextOnlyProcessorState(BaseState):
-    pass
+class TextOnlyProcessor(Processor):
+    @classproperty
+    def post_schema(cls) -> JSONSchema:
+        return JSONSchema(**TextOnlyPost.schema())
 
-
-class TextOnlyProcessor(Processor[TextOnlyProcessorState]):
-    @classmethod
-    def category(cls) -> str:
-        return "text"
-
-    @staticmethod
-    def post_schema() -> JSONSchema:
-        return JSONSchema(TextOnlyPost.schema())
-
-    @staticmethod
-    def needed_fields() -> TweetFields:
+    @classproperty
+    def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS
 
-    async def _create_initial_state(self) -> TextOnlyProcessorState:
-        return TextOnlyProcessorState()
-
-    async def post(self, client: TwitterClient, post: JSON) -> UUID:
+    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
         post = TextOnlyPost.parse_obj(post)
         return await create_tweet(client, text=post.text.content)
 
     async def convert(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> JSON:
+    ) -> Dict[str, Any]:
         text = await get_text_data(tweet)
         post = TextOnlyPost(text=text)
-        return to_json(post)
-
-    async def _get_parameters(self) -> Iterable[Parameter]:
-        return []
+        return json.loads(post.json())
 
 
 # Image only
 
 
-@dataclass
-class ImageOnlyProcessorState(BaseState):
-    pass
+class ImageOnlyProcessor(Processor):
+    @classproperty
+    def post_schema(cls) -> JSONSchema:
+        return JSONSchema(**ImageOnlyPost.schema())
 
-
-class ImageOnlyProcessor(Processor[ImageOnlyProcessorState]):
-    @classmethod
-    def category(cls) -> str:
-        return "image"
-
-    @staticmethod
-    def post_schema() -> JSONSchema:
-        return JSONSchema(ImageOnlyPost.schema())
-
-    @staticmethod
-    def needed_fields() -> TweetFields:
+    @classproperty
+    def needed_fields(cls) -> TweetFields:
         return IMAGE_FIELDS
 
-    async def _create_initial_state(self) -> ImageOnlyProcessorState:
-        return ImageOnlyProcessorState()
-
-    async def post(self, client: TwitterClient, post: JSON) -> UUID:
+    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
         post = ImageOnlyPost.parse_obj(post)
         media = await upload_image(client, post.image)
         return await create_tweet(client, media_ids=[media.media_id])
 
     async def convert(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> JSON:
+    ) -> Dict[str, Any]:
         image = await get_image_data(tweet, includes)
         post = ImageOnlyPost(image=image)
-        return to_json(post)
-
-    async def _get_parameters(self) -> Iterable[Parameter]:
-        return []
+        return json.loads(post.json())
 
 
 # Text and image
 
 
-@dataclass
-class TextAndImageProcessorState(BaseState):
-    pass
+class TextAndImageProcessor(Processor):
+    @classproperty
+    def post_schema(cls) -> JSONSchema:
+        return JSONSchema(**TextAndImagePost.schema())
 
-
-class TextAndImageProcessor(Processor[TextAndImageProcessorState]):
-    @classmethod
-    def category(cls) -> str:
-        return "text-and-image"
-
-    @staticmethod
-    def post_schema() -> JSONSchema:
-        return JSONSchema(TextAndImagePost.schema())
-
-    @staticmethod
-    def needed_fields() -> TweetFields:
+    @classproperty
+    def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def _create_initial_state(self) -> TextAndImageProcessorState:
-        return TextAndImageProcessorState()
-
-    async def post(self, client: TwitterClient, post: JSON) -> UUID:
+    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
         post = TextAndImagePost.parse_obj(post)
         media = await upload_image(client, post.image)
         return await create_tweet(
@@ -220,41 +168,26 @@ class TextAndImageProcessor(Processor[TextAndImageProcessorState]):
 
     async def convert(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> JSON:
+    ) -> Dict[str, Any]:
         text = await get_text_data(tweet)
         image = await get_image_data(tweet, includes)
         post = TextAndImagePost(text=text, image=image)
-        return to_json(post)
-
-    async def _get_parameters(self) -> Iterable[Parameter]:
-        return []
+        return json.loads(post.json())
 
 
 # Text or image
 
 
-@dataclass
-class TextOrImageProcessorState(BaseState):
-    pass
+class TextOrImageProcessor(Processor):
+    @classproperty
+    def post_schema(cls) -> JSONSchema:
+        return JSONSchema(**TextOrImagePost.schema())
 
-
-class TextOrImageProcessor(Processor[TextOrImageProcessorState]):
-    @classmethod
-    def category(cls) -> str:
-        return "text-or-image"
-
-    @staticmethod
-    def post_schema() -> JSONSchema:
-        return JSONSchema(TextOrImagePost.schema())
-
-    @staticmethod
-    def needed_fields() -> TweetFields:
+    @classproperty
+    def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def _create_initial_state(self) -> TextOrImageProcessorState:
-        return TextOrImageProcessorState()
-
-    async def post(self, client: TwitterClient, post: JSON) -> UUID:
+    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
         post = TextOrImagePost.parse_obj(post)
         kwargs = {}
         if post.text is not None:
@@ -266,45 +199,26 @@ class TextOrImageProcessor(Processor[TextOrImageProcessorState]):
 
     async def convert(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> JSON:
+    ) -> Dict[str, Any]:
         text = await get_text_data(tweet)
         image = await get_image_data(tweet, includes)
         post = TextOrImagePost(text=text, image=image)
-        return to_json(post)
-
-    async def _get_parameters(self) -> Iterable[Parameter]:
-        return []
+        return json.loads(post.json())
 
 
 # Text with optional image
 
 
-@dataclass
-class TextWithOptionalImageProcessorState(BaseState):
-    pass
+class TextWithOptionalImageProcessor(Processor):
+    @classproperty
+    def post_schema(cls) -> JSONSchema:
+        return JSONSchema(**TextWithOptionalImagePost.schema())
 
-
-class TextWithOptionalImageProcessor(
-    Processor[TextWithOptionalImageProcessorState]
-):
-    @classmethod
-    def category(cls) -> str:
-        return "text-with-optional-image"
-
-    @staticmethod
-    def post_schema() -> JSONSchema:
-        return JSONSchema(TextWithOptionalImagePost.schema())
-
-    @staticmethod
-    def needed_fields() -> TweetFields:
+    @classproperty
+    def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def _create_initial_state(
-        self,
-    ) -> TextWithOptionalImageProcessorState:
-        return TextWithOptionalImageProcessorState()
-
-    async def post(self, client: TwitterClient, post: JSON) -> UUID:
+    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
         post = TextWithOptionalImagePost.parse_obj(post)
         kwargs = {}
         if post.image is not None:
@@ -314,45 +228,26 @@ class TextWithOptionalImageProcessor(
 
     async def convert(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> JSON:
+    ) -> Dict[str, Any]:
         text = await get_text_data(tweet)
         image = await get_image_data(tweet, includes)
         post = TextWithOptionalImagePost(text=text, image=image)
-        return to_json(post)
-
-    async def _get_parameters(self) -> Iterable[Parameter]:
-        return []
+        return json.loads(post.json())
 
 
 # Image with optional text
 
 
-@dataclass
-class ImageWithOptionalTextProcessorState(BaseState):
-    pass
+class ImageWithOptionalTextProcessor(Processor):
+    @classproperty
+    def post_schema(cls) -> JSONSchema:
+        return JSONSchema(**ImageWithOptionalTextPost.schema())
 
-
-class ImageWithOptionalTextProcessor(
-    Processor[ImageWithOptionalTextProcessorState]
-):
-    @classmethod
-    def category(cls) -> str:
-        return "image-with-optional-text"
-
-    @staticmethod
-    def post_schema() -> JSONSchema:
-        return JSONSchema(ImageWithOptionalTextPost.schema())
-
-    @staticmethod
-    def needed_fields() -> TweetFields:
+    @classproperty
+    def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def _create_initial_state(
-        self,
-    ) -> ImageWithOptionalTextProcessorState:
-        return ImageWithOptionalTextProcessorState()
-
-    async def post(self, client: TwitterClient, post: JSON) -> UUID:
+    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
         post = ImageWithOptionalTextPost.parse_obj(post)
         kwargs = {}
         if post.text is not None:
@@ -362,11 +257,8 @@ class ImageWithOptionalTextProcessor(
 
     async def convert(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> JSON:
+    ) -> Dict[str, Any]:
         text = await get_text_data(tweet)
         image = await get_image_data(tweet, includes)
         post = ImageWithOptionalTextPost(text=text, image=image)
-        return to_json(post)
-
-    async def _get_parameters(self) -> Iterable[Parameter]:
-        return []
+        return json.loads(post.json())
