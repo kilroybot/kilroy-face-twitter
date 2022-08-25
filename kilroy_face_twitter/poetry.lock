@@ -117,7 +117,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "charset-normalizer"
-version = "2.1.0"
+version = "2.1.1"
 description = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
 category = "main"
 optional = false
@@ -287,7 +287,7 @@ python-versions = "*"
 
 [[package]]
 name = "jsonschema"
-version = "4.12.1"
+version = "4.14.0"
 description = "An implementation of JSON Schema validation for Python"
 category = "main"
 optional = false
@@ -303,7 +303,7 @@ format-nongpl = ["fqdn", "idna", "isoduration", "jsonpointer (>1.13)", "rfc3339-
 
 [[package]]
 name = "kilroy-face-py-shared"
-version = "0.3.1"
+version = "0.4.0"
 description = "shared code for kilroy face SDKs in Python 🤝"
 category = "main"
 optional = false
@@ -321,14 +321,14 @@ test = ["pytest (>=7.0,<8.0)"]
 
 [[package]]
 name = "kilroy-face-server-py-sdk"
-version = "0.6.0"
+version = "0.7.0"
 description = "SDK for kilroy face servers in Python 🧰"
 category = "main"
 optional = false
 python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
-kilroy-face-py-shared = ">=0.3,<0.4"
+kilroy-face-py-shared = ">=0.4,<0.5"
 kilroy-server-py-utils = ">=0.1,<0.2"
 
 [package.extras]
@@ -337,7 +337,7 @@ test = ["pytest (>=7.0,<8.0)"]
 
 [[package]]
 name = "kilroy-server-py-utils"
-version = "0.1.2"
+version = "0.1.4"
 description = "utilities for kilroy servers 🔧"
 category = "main"
 optional = false
@@ -594,7 +594,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "tweepy"
-version = "4.10.0"
+version = "4.10.1"
 description = "Twitter library for Python"
 category = "main"
 optional = false
@@ -643,7 +643,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "urllib3"
-version = "1.26.11"
+version = "1.26.12"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 category = "main"
 optional = false
@@ -651,7 +651,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, 
 
 [package.extras]
 brotli = ["brotlicffi (>=0.8.0)", "brotli (>=1.0.9)", "brotlipy (>=0.6.0)"]
-secure = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "certifi", "ipaddress"]
+secure = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "certifi", "urllib3-secure-extra", "ipaddress"]
 socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
@@ -673,7 +673,7 @@ test = ["pytest"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "3fe6e97c358b11de919b83fa598d0273ddf9b1053e84d78ebf6e5387482e0082"
+content-hash = "3371e04e469e4f400722760591facdc35f8c2122256b54b048010f60688832d3"
 
 [metadata.files]
 aiohttp = [
@@ -785,8 +785,8 @@ certifi = [
     {file = "certifi-2022.6.15.tar.gz", hash = "sha256:84c85a9078b11105f04f3036a9482ae10e4621616db313fe045dd24743a0820d"},
 ]
 charset-normalizer = [
-    {file = "charset-normalizer-2.1.0.tar.gz", hash = "sha256:575e708016ff3a5e3681541cb9d79312c416835686d054a23accb873b254f413"},
-    {file = "charset_normalizer-2.1.0-py3-none-any.whl", hash = "sha256:5189b6f22b01957427f35b6a08d9a0bc45b46d3788ef5a92e978433c7a35f8a5"},
+    {file = "charset-normalizer-2.1.1.tar.gz", hash = "sha256:5a3d016c7c547f69d6f81fb0db9449ce888b418b5b9952cc5e6e66843e9dd845"},
+    {file = "charset_normalizer-2.1.1-py3-none-any.whl", hash = "sha256:83e9a75d1911279afd89352c68b45348559d1fc0506b054b346651b5e7fee29f"},
 ]
 click = [
     {file = "click-8.1.3-py3-none-any.whl", hash = "sha256:bb4d8133cb15a609f44e8213d9b391b0809795062913b383c62be0ee95b1db48"},
@@ -905,20 +905,20 @@ iniconfig = [
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
 ]
 jsonschema = [
-    {file = "jsonschema-4.12.1-py3-none-any.whl", hash = "sha256:05f975aee3f1244a1ea0e018e8ad2672f6ca5fd1a28bc46ffc7d4b3e9896cac4"},
-    {file = "jsonschema-4.12.1.tar.gz", hash = "sha256:c7dd96a88c4ea60bdc8478589ee2d4ea5d73ab235e24d17641ad733dde4e3eb1"},
+    {file = "jsonschema-4.14.0-py3-none-any.whl", hash = "sha256:9892b8d630a82990521a9ca630d3446bd316b5ad54dbe981338802787f3e0d2d"},
+    {file = "jsonschema-4.14.0.tar.gz", hash = "sha256:15062f4cc6f591400cd528d2c355f2cfa6a57e44c820dc783aee5e23d36a831f"},
 ]
 kilroy-face-py-shared = [
-    {file = "kilroy-face-py-shared-0.3.1.tar.gz", hash = "sha256:3e552a3336fa3bf6f64d4e58ca8130cc1f4dbd44435296f94124c8c09f92d8ef"},
-    {file = "kilroy_face_py_shared-0.3.1-py3-none-any.whl", hash = "sha256:ed3e5a6e27a12cee39215990cea0c80e80a06f6d3073719ed92743d81e1fb125"},
+    {file = "kilroy-face-py-shared-0.4.0.tar.gz", hash = "sha256:4ce5f46155351b531bce08a3c5db1a99c6035b3874a30a85f0367affdd559b87"},
+    {file = "kilroy_face_py_shared-0.4.0-py3-none-any.whl", hash = "sha256:d4d4cd51d3bb3cd8a854a76ac05dd5600b824755671ce6c68d73acac2e8dc08b"},
 ]
 kilroy-face-server-py-sdk = [
-    {file = "kilroy-face-server-py-sdk-0.6.0.tar.gz", hash = "sha256:5ba353c0f9c9e1e320407dd4050d113b7a16d4b760c4b9a943cfbb9ba45c43eb"},
-    {file = "kilroy_face_server_py_sdk-0.6.0-py3-none-any.whl", hash = "sha256:5d99ab9f9c1b20277f9bf060ef4cd5c8c79a11afb3b19c4903f6b6cb10825b39"},
+    {file = "kilroy-face-server-py-sdk-0.7.0.tar.gz", hash = "sha256:68c8485fa30219f4cdffacea3a95858038a79e5142365308fef77c343e84a51e"},
+    {file = "kilroy_face_server_py_sdk-0.7.0-py3-none-any.whl", hash = "sha256:8b8862dc0144884b9eea977a5cda5a0977906fd6cc93206bc87a21e8044b27a9"},
 ]
 kilroy-server-py-utils = [
-    {file = "kilroy-server-py-utils-0.1.2.tar.gz", hash = "sha256:bb8980ba3636be50e8ce580a2846a89e6fc7d76f687bf86dca01ffd30ae511cf"},
-    {file = "kilroy_server_py_utils-0.1.2-py3-none-any.whl", hash = "sha256:9991e848361286fe2e523dac403fa005715525eef7f251a3d444a3e790e41ff3"},
+    {file = "kilroy-server-py-utils-0.1.4.tar.gz", hash = "sha256:7cc25861b71cfb1c4ff5fd9cdd17abb9e0b5022335429350655c130bd70803b3"},
+    {file = "kilroy_server_py_utils-0.1.4-py3-none-any.whl", hash = "sha256:fd7bf44177b269aa9a9b54209767ee523804f568c5fc11488bfa0dda300ae60e"},
 ]
 multidict = [
     {file = "multidict-6.0.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:0b9e95a740109c6047602f4db4da9949e6c5945cefbad34a1299775ddc9a62e2"},
@@ -1145,8 +1145,8 @@ tomli = [
     {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
 ]
 tweepy = [
-    {file = "tweepy-4.10.0-py3-none-any.whl", hash = "sha256:f0abbd234a588e572f880f99a094ac321217ff3eade6c0eca118ed6db8e2cf0a"},
-    {file = "tweepy-4.10.0.tar.gz", hash = "sha256:7f92574920c2f233663fff154745fc2bb0d10aedc23617379a912d8e4fefa399"},
+    {file = "tweepy-4.10.1-py3-none-any.whl", hash = "sha256:0a21396b646af4fcee69762d2908c104e1fe2e2c4e1dfd6e6078a41b38771382"},
+    {file = "tweepy-4.10.1.tar.gz", hash = "sha256:310193775d7fc381abd6f37021a9af27f7e9edfcce5ec51bd73ea5f30c21fa61"},
 ]
 typer = [
     {file = "typer-0.6.1-py3-none-any.whl", hash = "sha256:54b19e5df18654070a82f8c2aa1da456a4ac16a2a83e6dcd9f170e291c56338e"},
@@ -1157,8 +1157,8 @@ typing-extensions = [
     {file = "typing_extensions-4.3.0.tar.gz", hash = "sha256:e6d2677a32f47fc7eb2795db1dd15c1f34eff616bcaf2cfb5e997f854fa1c4a6"},
 ]
 urllib3 = [
-    {file = "urllib3-1.26.11-py2.py3-none-any.whl", hash = "sha256:c33ccba33c819596124764c23a97d25f32b28433ba0dedeb77d873a38722c9bc"},
-    {file = "urllib3-1.26.11.tar.gz", hash = "sha256:ea6e8fb210b19d950fab93b60c9009226c63a28808bc8386e05301e25883ac0a"},
+    {file = "urllib3-1.26.12-py2.py3-none-any.whl", hash = "sha256:b930dd878d5a8afb066a637fbb35144fe7901e3b209d1cd4f524bd0e9deee997"},
+    {file = "urllib3-1.26.12.tar.gz", hash = "sha256:3fa96cf423e6987997fc326ae8df396db2a8b7c667747d47ddd8ecba91f4a74e"},
 ]
 yarl = [
     {file = "yarl-1.8.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:abc06b97407868ef38f3d172762f4069323de52f2b70d133d096a48d72215d28"},
