@@ -1,17 +1,12 @@
+from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
-from typing import (
-    Any,
-    AsyncIterable,
-    Dict,
-    Optional,
-    Set,
-    Tuple,
-)
+from typing import Any, AsyncIterable, Dict, Optional, Set, Tuple
 from uuid import UUID
 
 from aiostream import stream
 from kilroy_face_server_py_sdk import (
+    Categorizable,
     CategorizableBasedParameter,
     Configurable,
     Face,
@@ -20,14 +15,13 @@ from kilroy_face_server_py_sdk import (
     Parameter,
     SerializableModel,
     classproperty,
+    normalize,
 )
 from tweepy import Tweet
 
 from kilroy_face_twitter.client import TwitterClient
 from kilroy_face_twitter.models import TweetFields, TweetIncludes
-from kilroy_face_twitter.processors import (
-    Processor,
-)
+from kilroy_face_twitter.processors import Processor
 from kilroy_face_twitter.scorers import Scorer
 from kilroy_face_twitter.scrapers import Scraper
 
@@ -37,7 +31,6 @@ class TwitterFaceParams(SerializableModel):
     consumer_secret: str
     access_token: str
     access_token_secret: str
-    post_type: str
     scoring_type: str
     scorers_params: Dict[str, Dict[str, Any]] = {}
     scraping_type: str
@@ -68,17 +61,25 @@ class ScraperParameter(CategorizableBasedParameter[TwitterFaceState, Scraper]):
         return {**state.scrapers_params.get(category, {})}
 
 
-class TwitterFace(Face[TwitterFaceState]):
-    @property
-    def metadata(self) -> Metadata:
+class TwitterFace(Categorizable, Face[TwitterFaceState], ABC):
+    @classproperty
+    def category(cls) -> str:
+        name: str = cls.__name__
+        return normalize(name.removesuffix("TwitterFace"))
+
+    @classproperty
+    def metadata(cls) -> Metadata:
         return Metadata(
             key="kilroy-face-twitter", description="Kilroy face for Twitter"
         )
 
-    @property
-    def post_schema(self) -> JSONSchema:
-        params = TwitterFaceParams(**self._kwargs)
-        return Processor.for_category(params.post_type).post_schema
+    @classproperty
+    def post_type(cls) -> str:
+        return cls.category
+
+    @classproperty
+    def post_schema(cls) -> JSONSchema:
+        return Processor.for_category(cls.post_type).post_schema
 
     @classproperty
     def parameters(cls) -> Set[Parameter]:
@@ -88,8 +89,8 @@ class TwitterFace(Face[TwitterFaceState]):
         }
 
     @classmethod
-    async def _build_processor(cls, params: TwitterFaceParams) -> Processor:
-        return Processor.for_category(params.post_type)()
+    async def _build_processor(cls) -> Processor:
+        return Processor.for_category(cls.post_type)()
 
     @staticmethod
     async def _build_scorer(params: TwitterFaceParams) -> Scorer:
@@ -125,7 +126,7 @@ class TwitterFace(Face[TwitterFaceState]):
     async def build_default_state(self) -> TwitterFaceState:
         params = TwitterFaceParams(**self._kwargs)
         return TwitterFaceState(
-            processor=await self._build_processor(params),
+            processor=await self._build_processor(),
             scorer=await self._build_scorer(params),
             scorers_params=params.scorers_params,
             scraper=await self._build_scraper(params),
@@ -151,37 +152,68 @@ class TwitterFace(Face[TwitterFaceState]):
             includes = TweetIncludes.from_response(response)
             return await state.scorer.score(state.client, tweet, includes)
 
+    @staticmethod
+    async def _fetch(
+        client: TwitterClient,
+        tweets: AsyncIterable[Tuple[Tweet, TweetIncludes]],
+        processor: Processor,
+        scorer: Scorer,
+    ) -> AsyncIterable[Tuple[UUID, Dict[str, Any], float]]:
+        async for tweet, includes in tweets:
+            post_id = UUID(int=tweet.id)
+            score = await scorer.score(client, tweet, includes)
+
+            try:
+                post = await processor.convert(client, tweet, includes)
+            except Exception:
+                continue
+
+            yield post_id, post, score
+
     async def scrap(
         self,
         limit: Optional[int] = None,
         before: Optional[datetime] = None,
         after: Optional[datetime] = None,
-    ) -> AsyncIterable[Tuple[UUID, Dict[str, Any]]]:
-        state = await self.state.value.fetch()
+    ) -> AsyncIterable[Tuple[UUID, Dict[str, Any], float]]:
+        async with self.state.read_lock() as state:
+            fields = TweetFields(tweet_fields=["id"])
+            fields = fields + state.processor.needed_fields
+            fields = fields + state.scorer.needed_fields
+            tweets = state.scraper.scrap(state.client, fields, before, after)
 
-        async def fetch(
-            client: TwitterClient,
-            twts: AsyncIterable[Tuple[Tweet, TweetIncludes]],
-            processor: Processor,
-        ) -> AsyncIterable[Tuple[UUID, Dict[str, Any]]]:
-            async for tweet, includes in twts:
-                uuid = UUID(int=tweet.id)
-                try:
-                    post = await processor.convert(client, tweet, includes)
-                except Exception:
-                    continue
-                yield uuid, post
+            posts = self._fetch(
+                state.client, tweets, state.processor, state.scorer
+            )
+            if limit is not None:
+                posts = stream.take(posts, limit)
+            else:
+                posts = stream.iterate(posts)
 
-        fields = state.processor.needed_fields
-        fields = fields + TweetFields(tweet_fields=["id"])
+            async with posts.stream() as streamer:
+                async for post_id, post, score in streamer:
+                    yield post_id, post, score
 
-        tweets = state.scraper.scrap(state.client, fields, before, after)
-        posts = fetch(state.client, tweets, state.processor)
-        if limit is not None:
-            posts = stream.take(posts, limit)
-        else:
-            posts = stream.iterate(posts)
 
-        async with posts.stream() as streamer:
-            async for post_id, post in streamer:
-                yield post_id, post
+class TextOnlyTwitterFace(TwitterFace):
+    pass
+
+
+class ImageOnlyTwitterFace(TwitterFace):
+    pass
+
+
+class TextAndImageTwitterFace(TwitterFace):
+    pass
+
+
+class TextOrImageTwitterFace(TwitterFace):
+    pass
+
+
+class TextWithOptionalImageTwitterFace(TwitterFace):
+    pass
+
+
+class ImageWithOptionalTextTwitterFace(TwitterFace):
+    pass

@@ -36,12 +36,13 @@ def get_logger(verbosity: Verbosity) -> Logger:
 
 
 async def run(config: Dict, logger: Logger) -> None:
-    face = await TwitterFace.build(**config.get("face", {}))
+    face_cls = TwitterFace.for_category(config.get("faceType"))
+    face = await face_cls.build(**config.get("faceParams", {}))
     server = FaceServer(face, logger)
 
     tasks = (
         asyncio.create_task(face.init()),
-        asyncio.create_task(server.run(**config.get("server", {}))),
+        asyncio.create_task(server.run(**config.get("serverParams", {}))),
     )
 
     try:
