@@ -1,6 +1,8 @@
+import json
 from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any, AsyncIterable, Dict, Optional, Set, Tuple
 from uuid import UUID
 
@@ -8,11 +10,11 @@ from aiostream import stream
 from kilroy_face_server_py_sdk import (
     Categorizable,
     CategorizableBasedParameter,
-    Configurable,
     Face,
     JSONSchema,
     Metadata,
     Parameter,
+    Savable,
     SerializableModel,
     classproperty,
     normalize,
@@ -26,7 +28,7 @@ from kilroy_face_twitter.scorers import Scorer
 from kilroy_face_twitter.scrapers import Scraper
 
 
-class TwitterFaceParams(SerializableModel):
+class Params(SerializableModel):
     consumer_key: str
     consumer_secret: str
     access_token: str
@@ -38,7 +40,7 @@ class TwitterFaceParams(SerializableModel):
 
 
 @dataclass
-class TwitterFaceState:
+class State:
     processor: Processor
     scorer: Scorer
     scorers_params: Dict[str, Dict[str, Any]]
@@ -47,21 +49,17 @@ class TwitterFaceState:
     client: TwitterClient
 
 
-class ScorerParameter(CategorizableBasedParameter[TwitterFaceState, Scorer]):
-    async def _get_params(
-        self, state: TwitterFaceState, category: str
-    ) -> Dict[str, Any]:
+class ScorerParameter(CategorizableBasedParameter[State, Scorer]):
+    async def _get_params(self, state: State, category: str) -> Dict[str, Any]:
         return {**state.scorers_params.get(category, {})}
 
 
-class ScraperParameter(CategorizableBasedParameter[TwitterFaceState, Scraper]):
-    async def _get_params(
-        self, state: TwitterFaceState, category: str
-    ) -> Dict[str, Any]:
+class ScraperParameter(CategorizableBasedParameter[State, Scraper]):
+    async def _get_params(self, state: State, category: str) -> Dict[str, Any]:
         return {**state.scrapers_params.get(category, {})}
 
 
-class TwitterFace(Categorizable, Face[TwitterFaceState], ABC):
+class TwitterFace(Categorizable, Face[State], ABC):
     @classproperty
     def category(cls) -> str:
         name: str = cls.__name__
@@ -90,48 +88,113 @@ class TwitterFace(Categorizable, Face[TwitterFaceState], ABC):
 
     @classmethod
     async def _build_processor(cls) -> Processor:
-        return Processor.for_category(cls.post_type)()
+        return await cls.build_generic(Processor, category=cls.post_type)
 
-    @staticmethod
-    async def _build_scorer(params: TwitterFaceParams) -> Scorer:
-        scorer_cls = Scorer.for_category(params.scoring_type)
-        scorer_params = params.scorers_params.get(params.scoring_type, {})
-        if issubclass(scorer_cls, Configurable):
-            scorer = await scorer_cls.build(**scorer_params)
-            await scorer.init()
-        else:
-            scorer = scorer_cls(**scorer_params)
-        return scorer
-
-    @staticmethod
-    async def _build_scraper(params: TwitterFaceParams) -> Scraper:
-        scraper_cls = Scraper.for_category(params.scraping_type)
-        scraper_params = params.scrapers_params.get(params.scraping_type, {})
-        if issubclass(scraper_cls, Configurable):
-            scraper = await scraper_cls.build(**scraper_params)
-            await scraper.init()
-        else:
-            scraper = scraper_cls(**scraper_params)
-        return scraper
-
-    @staticmethod
-    async def _build_client(params: TwitterFaceParams) -> TwitterClient:
-        return TwitterClient(
-            params.consumer_key,
-            params.consumer_secret,
-            params.access_token,
-            params.access_token_secret,
+    @classmethod
+    async def _build_scorer(
+        cls, scoring_type: str, scorers_params: Dict[str, Dict[str, Any]]
+    ) -> Scorer:
+        return await cls.build_generic(
+            Scorer,
+            category=scoring_type,
+            **scorers_params.get(scoring_type, {}),
         )
 
-    async def build_default_state(self) -> TwitterFaceState:
-        params = TwitterFaceParams(**self._kwargs)
-        return TwitterFaceState(
+    @classmethod
+    async def _build_scraper(
+        cls, scraping_type: str, scrapers_params: Dict[str, Dict[str, Any]]
+    ) -> Scraper:
+        return await cls.build_generic(
+            Scraper,
+            category=scraping_type,
+            **scrapers_params.get(scraping_type, {}),
+        )
+
+    @staticmethod
+    async def _build_client(
+        consumer_key: str,
+        consumer_secret: str,
+        access_token: str,
+        access_token_secret: str,
+    ) -> TwitterClient:
+        return TwitterClient(
+            consumer_key, consumer_secret, access_token, access_token_secret
+        )
+
+    async def build_default_state(self) -> State:
+        params = Params(**self._kwargs)
+        return State(
             processor=await self._build_processor(),
-            scorer=await self._build_scorer(params),
+            scorer=await self._build_scorer(
+                params.scoring_type, params.scorers_params
+            ),
             scorers_params=params.scorers_params,
-            scraper=await self._build_scraper(params),
+            scraper=await self._build_scraper(
+                params.scraping_type, params.scrapers_params
+            ),
             scrapers_params=params.scrapers_params,
-            client=await self._build_client(params),
+            client=await self._build_client(
+                params.consumer_key,
+                params.consumer_secret,
+                params.access_token,
+                params.access_token_secret,
+            ),
+        )
+
+    @classmethod
+    async def save_state(cls, state: State, directory: Path) -> None:
+        if isinstance(state.processor, Savable):
+            await state.processor.save(directory)
+        if isinstance(state.scorer, Savable):
+            await state.scorer.save(directory)
+        if isinstance(state.scraper, Savable):
+            await state.scraper.save(directory)
+
+        state_dict = {
+            "processor_type": state.processor.category,
+            "scorer_type": state.scorer.category,
+            "scraper_type": state.scraper.category,
+            "scorers_params": state.scorers_params,
+            "scrapers_params": state.scrapers_params,
+        }
+
+        with open(directory / "state.json", "w") as f:
+            json.dump(state_dict, f)
+
+    async def load_saved_state(self, directory: Path) -> State:
+        with open(directory / "state.json", "r") as f:
+            state_dict = json.load(f)
+
+        params = Params(**self._kwargs)
+
+        return State(
+            processor=await self.load_generic(
+                directory, Processor, category=state_dict["processor_type"]
+            ),
+            scorer=await self.load_generic(
+                directory,
+                Scorer,
+                category=state_dict["scorer_type"],
+                **state_dict["scorers_params"].get(
+                    state_dict["scorer_type"], {}
+                ),
+            ),
+            scorers_params=state_dict["scorers_params"],
+            scraper=await self.load_generic(
+                directory,
+                Scraper,
+                category=state_dict["scraper_type"],
+                **state_dict["scrapers_params"].get(
+                    state_dict["scraper_type"], {}
+                ),
+            ),
+            scrapers_params=state_dict["scrapers_params"],
+            client=await self._build_client(
+                params.consumer_key,
+                params.consumer_secret,
+                params.access_token,
+                params.access_token_secret,
+            ),
         )
 
     async def cleanup(self) -> None:
