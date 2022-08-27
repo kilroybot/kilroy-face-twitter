@@ -3,7 +3,7 @@
 
 [tool.poetry]
 name = "kilroy-face-twitter"
-version = "0.3.0"
+version = "0.4.0"
 description = "kilroy face for Twitter 🐦"
 readme = "kilroy_face_twitter/README.md"
 authors = ["kilroy <kilroymail@pm.me>"]
@@ -22,6 +22,7 @@ httpx = "^0.23"
 aiostream = "^0.4"
 PyYAML = "^6.0"
 deepmerge = "^1.0"
+platformdirs = "^2.5"
 
 # dev
 

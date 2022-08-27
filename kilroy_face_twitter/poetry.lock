@@ -321,7 +321,7 @@ test = ["pytest (>=7.0,<8.0)"]
 
 [[package]]
 name = "kilroy-face-server-py-sdk"
-version = "0.7.0"
+version = "0.7.1"
 description = "SDK for kilroy face servers in Python 🧰"
 category = "main"
 optional = false
@@ -329,7 +329,7 @@ python-versions = ">=3.9,<4.0"
 
 [package.dependencies]
 kilroy-face-py-shared = ">=0.4,<0.5"
-kilroy-server-py-utils = ">=0.1,<0.2"
+kilroy-server-py-utils = ">=0.2,<0.3"
 
 [package.extras]
 dev = ["pytest (>=7.0,<8.0)"]
@@ -337,7 +337,7 @@ test = ["pytest (>=7.0,<8.0)"]
 
 [[package]]
 name = "kilroy-server-py-utils"
-version = "0.1.4"
+version = "0.2.0"
 description = "utilities for kilroy servers 🔧"
 category = "main"
 optional = false
@@ -384,6 +384,18 @@ python-versions = ">=3.6"
 
 [package.dependencies]
 pyparsing = ">=2.0.2,<3.0.5 || >3.0.5"
+
+[[package]]
+name = "platformdirs"
+version = "2.5.2"
+description = "A small Python module for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.extras]
+docs = ["furo (>=2021.7.5b38)", "proselint (>=0.10.2)", "sphinx-autodoc-typehints (>=1.12)", "sphinx (>=4)"]
+test = ["appdirs (==1.4.4)", "pytest-cov (>=2.7)", "pytest-mock (>=3.6)", "pytest (>=6)"]
 
 [[package]]
 name = "pluggy"
@@ -433,7 +445,7 @@ plugins = ["importlib-metadata"]
 
 [[package]]
 name = "pyhumps"
-version = "3.7.2"
+version = "3.7.3"
 description = "🐫  Convert strings (and dictionary keys) between snake case, camel case and pascal case in Python. Inspired by Humps for Node"
 category = "main"
 optional = false
@@ -673,7 +685,7 @@ test = ["pytest"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "3371e04e469e4f400722760591facdc35f8c2122256b54b048010f60688832d3"
+content-hash = "74a84e02ed90f48262dd0b1c129e0f4ed8731d7d54b8827481a1c9cdf0b3cb36"
 
 [metadata.files]
 aiohttp = [
@@ -913,12 +925,12 @@ kilroy-face-py-shared = [
     {file = "kilroy_face_py_shared-0.4.0-py3-none-any.whl", hash = "sha256:d4d4cd51d3bb3cd8a854a76ac05dd5600b824755671ce6c68d73acac2e8dc08b"},
 ]
 kilroy-face-server-py-sdk = [
-    {file = "kilroy-face-server-py-sdk-0.7.0.tar.gz", hash = "sha256:68c8485fa30219f4cdffacea3a95858038a79e5142365308fef77c343e84a51e"},
-    {file = "kilroy_face_server_py_sdk-0.7.0-py3-none-any.whl", hash = "sha256:8b8862dc0144884b9eea977a5cda5a0977906fd6cc93206bc87a21e8044b27a9"},
+    {file = "kilroy-face-server-py-sdk-0.7.1.tar.gz", hash = "sha256:ed141f8a00a80fde006292e91711730a9cc7f375a853f1a8a5acd9a7727c94e1"},
+    {file = "kilroy_face_server_py_sdk-0.7.1-py3-none-any.whl", hash = "sha256:589bee2a0ef559ad004084faff8bd3bf4c4e48e26f0468a99293c698d5937bba"},
 ]
 kilroy-server-py-utils = [
-    {file = "kilroy-server-py-utils-0.1.4.tar.gz", hash = "sha256:7cc25861b71cfb1c4ff5fd9cdd17abb9e0b5022335429350655c130bd70803b3"},
-    {file = "kilroy_server_py_utils-0.1.4-py3-none-any.whl", hash = "sha256:fd7bf44177b269aa9a9b54209767ee523804f568c5fc11488bfa0dda300ae60e"},
+    {file = "kilroy-server-py-utils-0.2.0.tar.gz", hash = "sha256:62abeb048b84d5988e9d75c894c9a0a2a02c16e4de8cdfbbe447b0b6dc2eccde"},
+    {file = "kilroy_server_py_utils-0.2.0-py3-none-any.whl", hash = "sha256:4989319bd13f94bfb0a16e9b5620bf71b84a44f19286a61b7b5ec126ede0d298"},
 ]
 multidict = [
     {file = "multidict-6.0.2-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:0b9e95a740109c6047602f4db4da9949e6c5945cefbad34a1299775ddc9a62e2"},
@@ -989,6 +1001,10 @@ packaging = [
     {file = "packaging-21.3-py3-none-any.whl", hash = "sha256:ef103e05f519cdc783ae24ea4e2e0f508a9c99b2d4969652eed6a2e1ea5bd522"},
     {file = "packaging-21.3.tar.gz", hash = "sha256:dd47c42927d89ab911e606518907cc2d3a1f38bbd026385970643f9c5b8ecfeb"},
 ]
+platformdirs = [
+    {file = "platformdirs-2.5.2-py3-none-any.whl", hash = "sha256:027d8e83a2d7de06bbac4e5ef7e023c02b863d7ea5d079477e722bb41ab25788"},
+    {file = "platformdirs-2.5.2.tar.gz", hash = "sha256:58c8abb07dcb441e6ee4b11d8df0ac856038f944ab98b7be6b27b2a3c7feef19"},
+]
 pluggy = [
     {file = "pluggy-1.0.0-py2.py3-none-any.whl", hash = "sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3"},
     {file = "pluggy-1.0.0.tar.gz", hash = "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159"},
@@ -1039,8 +1055,8 @@ pygments = [
     {file = "Pygments-2.13.0.tar.gz", hash = "sha256:56a8508ae95f98e2b9bdf93a6be5ae3f7d8af858b43e02c5a2ff083726be40c1"},
 ]
 pyhumps = [
-    {file = "pyhumps-3.7.2-py3-none-any.whl", hash = "sha256:f554bc742138c01ef85176534a411b105c3e7b20133b3c68bd4e613dcb425241"},
-    {file = "pyhumps-3.7.2.tar.gz", hash = "sha256:cadfffd84e8cf93cf5566ed351bbd0d5356e04ffc03de7d2aa262660c144b775"},
+    {file = "pyhumps-3.7.3-py3-none-any.whl", hash = "sha256:8cf9503f71be250a1ec2c0af997309e6360ad4daa343acd7faafde54cce36469"},
+    {file = "pyhumps-3.7.3.tar.gz", hash = "sha256:6eec3741cf917009adb16f6b6b883429edb1c6286531bd9f3977ba41938b0a09"},
 ]
 pyparsing = [
     {file = "pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},

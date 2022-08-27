@@ -8,16 +8,22 @@ import logging
 from asyncio import FIRST_EXCEPTION
 from enum import Enum
 from logging import Logger
+from pathlib import Path
 from typing import Dict, Optional
 
 import typer
 from kilroy_face_server_py_sdk import FaceServer
+from platformdirs import user_cache_dir
 from typer import FileText
 
 from kilroy_face_twitter.config import get_config
 from kilroy_face_twitter.face import TwitterFace
 
 cli = typer.Typer()  # this is actually callable and thus can be an entry point
+
+DEFAULT_STATE_DIRECTORY = (
+    Path(user_cache_dir("kilroybot")) / "kilroy-face-twitter" / "state"
+)
 
 
 class Verbosity(str, Enum):
@@ -35,15 +41,40 @@ def get_logger(verbosity: Verbosity) -> Logger:
     return logger
 
 
-async def run(config: Dict, logger: Logger) -> None:
-    face_cls = TwitterFace.for_category(config.get("faceType"))
+async def load_or_init(
+    face: TwitterFace, state_dir: Path, logger: Logger
+) -> None:
+    if not state_dir.exists() or not any(state_dir.iterdir()):
+        logger.info("Initializing face...")
+        await face.init()
+        logger.info("Initialization complete.")
+        return
+
+    try:
+        logger.info("Loading state...")
+        await face.load_saved(state_dir)
+        logger.info("Loading complete.")
+    except OSError:
+        logger.warning("State directory is invalid. Will initialize instead.")
+        logger.info("Initializing face...")
+        await face.init()
+        logger.info("Initialization complete.")
+
+
+async def run(config: Dict, logger: Logger, state_dir: Path) -> None:
+    face_type = config["faceType"]
+    face_cls = TwitterFace.for_category(face_type)
     face = await face_cls.build(**config.get("faceParams", {}))
     server = FaceServer(face, logger)
 
-    tasks = (
-        asyncio.create_task(face.init()),
-        asyncio.create_task(server.run(**config.get("serverParams", {}))),
+    state_dir = state_dir / face_type
+
+    server_task = asyncio.create_task(
+        server.run(**config.get("serverParams", {}))
     )
+    init_task = asyncio.create_task(load_or_init(face, state_dir, logger))
+
+    tasks = [server_task, init_task]
 
     try:
         done, pending = await asyncio.wait(tasks, return_when=FIRST_EXCEPTION)
@@ -60,16 +91,33 @@ async def run(config: Dict, logger: Logger) -> None:
     for task in done:
         task.result()
 
-    await face.cleanup()
+    if (
+        init_task.done()
+        and not init_task.cancelled()
+        and init_task.exception() is None
+    ):
+        logger.info("Saving state...")
+        await face.save(state_dir)
+
+        logger.info("Cleaning up...")
+        await face.cleanup()
 
 
 @cli.command()
 def main(
     config: Optional[FileText] = typer.Option(
-        default=None, help="Configuration file"
+        None, "--config", "-c", dir_okay=False, help="Configuration file"
     ),
     verbosity: Verbosity = typer.Option(
-        default="INFO", help="Verbosity level."
+        "INFO", "--verbosity", "-v", help="Verbosity level."
+    ),
+    state_directory: Optional[Path] = typer.Option(
+        DEFAULT_STATE_DIRECTORY,
+        "--state-directory",
+        "-s",
+        file_okay=False,
+        writable=True,
+        help="Path to state directory.",
     ),
 ) -> None:
     """Command line interface for kilroy-face-twitter."""
@@ -77,7 +125,7 @@ def main(
     config = get_config(config)
     logger = get_logger(verbosity)
 
-    asyncio.run(run(config, logger))
+    asyncio.run(run(config, logger, state_directory))
 
 
 if __name__ == "__main__":
