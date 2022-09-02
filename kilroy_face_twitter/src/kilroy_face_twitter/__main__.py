@@ -54,8 +54,11 @@ async def load_or_init(
         logger.info("Loading state...")
         await face.load_saved(state_dir)
         logger.info("Loading complete.")
-    except OSError:
-        logger.warning("State directory is invalid. Will initialize instead.")
+    except Exception as e:
+        logger.warning(
+            "Can't load saved state. Will try to initialize instead.",
+            exc_info=e,
+        )
         logger.info("Initializing face...")
         await face.init()
         logger.info("Initialization complete.")
