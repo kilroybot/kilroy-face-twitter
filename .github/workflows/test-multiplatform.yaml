@@ -12,9 +12,9 @@ on:
       - "kilroy_face_twitter/tests/**"
       - "kilroy_face_twitter/poetry.lock"
       - "kilroy_face_twitter/pyproject.toml"
-      - "environment.yml"
+      - "environment.yaml"
       - "requirements.txt"
-      - ".github/workflows/test-multiplatform.yml"
+      - ".github/workflows/test-multiplatform.yaml"
   pull_request:
     # trigger only on main branch
     branches:
@@ -25,9 +25,9 @@ on:
       - "kilroy_face_twitter/tests/**"
       - "kilroy_face_twitter/poetry.lock"
       - "kilroy_face_twitter/pyproject.toml"
-      - "environment.yml"
+      - "environment.yaml"
       - "requirements.txt"
-      - ".github/workflows/test-multiplatform.yml"
+      - ".github/workflows/test-multiplatform.yaml"
 
 # env for all jobs
 env:
@@ -57,10 +57,10 @@ jobs:
     steps:
       - # get repository code
         name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - # get conda, poetry and pip cache (persistent between runs)
         name: Cache packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ${{ env.CONDA_CACHE_DIR }}
@@ -68,7 +68,7 @@ jobs:
             ${{ env.PIP_CACHE_DIR }}
           key: ${{ runner.os }}-pkgs-${{ env.CACHE_NUMBER }}
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.9.7"
       - name: Set up pip cache
@@ -82,13 +82,13 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: kilroy-face-twitter
-          environment-file: environment.yml
+          environment-file: environment.yaml
           # necessary for caching to work
           use-only-tar-bz2: true
       - # install only dependencies
         name: Install dependencies
         working-directory: kilroy_face_twitter
-        run: poetry install --no-root --extras test
+        run: poetry install --no-root --only main,test
       - # workaround for non-editable install, waiting for https://github.com/python-poetry/poetry/issues/1382
         name: Build package
         working-directory: kilroy_face_twitter

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kilroy-face-twitter"
-version = "0.4.1"
+version = "0.4.2"
 description = "kilroy face for Twitter 🐦"
 readme = "README.md"
 authors = ["kilroy <kilroymail@pm.me>"]
@@ -11,27 +11,110 @@ documentation = "https://kilroybot.github.io/kilroy-face-twitter"
 
 [tool.poetry.dependencies]
 python = "^3.9"
+pydantic =  { version = "^1.10", extras = ["dotenv"] }
+omegaconf = "^2.2"
 typer = { version = "^0.6", extras = ["all"] }
 kilroy-face-server-py-sdk = "~0.7"
 tweepy = { version = "^4.10", extras = ["async"] }
 httpx = "^0.23"
 aiostream = "^0.4"
-PyYAML = "^6.0"
-deepmerge = "^1.0"
 platformdirs = "^2.5"
 
-# dev
+[tool.poetry.group.poe.dependencies]
+poethepoet = "^0.16"
 
-# test
-pytest = { version = "^7.0", optional = true }
+[tool.poetry.group.dev.dependencies]
+black = "^22"
 
-[tool.poetry.extras]
-# need to do it that way until poetry supports dependency groups: https://github.com/python-poetry/poetry/issues/1644
-dev = ["pytest"]
-test = ["pytest"]
+[tool.poetry.group.test.dependencies]
+pytest = "^7"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = "^8"
+
 [tool.poetry.scripts]
 # cli entry point
 kilroy-face-twitter = "kilroy_face_twitter.__main__:cli"
+
+[tool.black]
+line-length = 79
+target-version = ['py39']
+
+[tool.poe]
+verbosity = -1
+
+[tool.poe.tasks.install]
+help = "Install the package for local development in editable mode"
+cmd = "poetry install --sync"
+
+[tool.poe.tasks.update]
+help = "Update the package dependencies"
+cmd = "poetry update"
+
+[tool.poe.tasks.format]
+help = "Format the code"
+cmd = "black ."
+
+[tool.poe.tasks.lint]
+help = "Lint the code"
+cmd = "black . --check --diff"
+
+[tool.poe.tasks.test]
+help = "Run the tests"
+cmd = "pytest"
+
+[tool.poe.tasks.build-docs]
+help = "Build the documentation"
+cmd = "mkdocs build"
+cwd = "docs"
+
+[tool.poe.tasks.serve-docs]
+help = "Serve the documentation"
+cmd = "mkdocs serve"
+cwd = "docs"
+
+[tool.poe.tasks.docs]
+help = "Build and serve the documentation"
+ref = "serve-docs"
+deps = ["build-docs"]
+
+[tool.poe.tasks.clean]
+help = "Clean the build artifacts"
+cmd = "rm -rf build dist .eggs *.egg-info"
+
+[tool.poe.tasks.build]
+help = "Build the package"
+cmd = "poetry build"
+
+[tool.poe.tasks.run]
+help = "Run the kilroy-face-twitter package"
+cmd = "kilroy-face-twitter"
+
+[tool.poe.tasks.build-docker]
+help = "Build the docker image"
+cmd = "docker build -t kilroy-face-twitter .."
+
+[tool.poe.tasks.run-docker]
+help = "Run the kilroy-face-twitter package in a docker container"
+cmd = "docker run --rm -it kilroy-face-twitter"
+
+[tool.poe.tasks.docker]
+help = "Build and run the docker image"
+ref = "run-docker"
+deps = ["build-docker"]
+
+[tool.poe.tasks.build-docker-tests]
+help = "Build the docker image for tests"
+cmd = "docker build --target test -t kilroy-face-twitter:test .."
+
+[tool.poe.tasks.run-docker-tests]
+help = "Run the tests in a docker container"
+cmd = "docker run --rm -it kilroy-face-twitter:test"
+
+[tool.poe.tasks.docker-tests]
+help = "Build and run the docker image for tests"
+ref = "run-docker-tests"
+deps = ["build-docker-tests"]
 
 [build-system]
 # this should be there, see https://python-poetry.org/docs/pyproject/#poetry-and-pep-517

@@ -13,8 +13,8 @@ on:
       - "kilroy_face_twitter/README.md"
       - "kilroy_face_twitter/poetry.lock"
       - "kilroy_face_twitter/pyproject.toml"
-      - ".github/workflows/draft.yml"
-      - ".github/release-drafter.yml"
+      - ".github/workflows/draft.yaml"
+      - ".github/release-drafter.yaml"
 
 jobs:
   draft:
@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: release-drafter/release-drafter@v5
         with:
-          config-name: release-drafter.yml
+          config-name: release-drafter.yaml
           disable-autolabeler: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
