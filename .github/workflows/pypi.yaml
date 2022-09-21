@@ -19,17 +19,17 @@ jobs:
     steps:
       - # get repository code
         name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - # get conda, poetry and pip cache (persistent between runs)
         name: Cache packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ${{ env.POETRY_CACHE_DIR }}
             ${{ env.PIP_CACHE_DIR }}
           key: ${{ runner.os }}-pkgs-${{ env.CACHE_NUMBER }} }}
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.9.7"
       - name: Set up pip cache

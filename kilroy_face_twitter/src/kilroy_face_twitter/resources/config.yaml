@@ -1,11 +1,12 @@
-faceType: textOrImage
-faceParams:
-  consumerKey: XXXXXXXXXXXXXXXXXXXXXXXXX
-  consumerSecret: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-  accessToken: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-  accessTokenSecret: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-  scoringType: likes
-  scrapingType: timeline
-serverParams:
-  host: localhost
+# default configuration
+face_type: textOrImage
+face:
+  consumer_key: XXXXXXXXXXXXXXXXXXXXXXXXX
+  consumer_secret: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  access_token: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  access_token_secret: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  scoring_type: likes
+  scraping_type: timeline
+server:
+  host: "0.0.0.0"
   port: 10001

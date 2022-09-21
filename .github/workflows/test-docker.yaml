@@ -12,10 +12,10 @@ on:
       - "kilroy_face_twitter/tests/**"
       - "kilroy_face_twitter/poetry.lock"
       - "kilroy_face_twitter/pyproject.toml"
-      - "environment.yml"
+      - "environment.yaml"
       - "requirements.txt"
       - "Dockerfile"
-      - ".github/workflows/test-docker.yml"
+      - ".github/workflows/test-docker.yaml"
   pull_request:
     # trigger only on main branch
     branches:
@@ -26,10 +26,10 @@ on:
       - "kilroy_face_twitter/tests/**"
       - "kilroy_face_twitter/poetry.lock"
       - "kilroy_face_twitter/pyproject.toml"
-      - "environment.yml"
+      - "environment.yaml"
       - "requirements.txt"
       - "Dockerfile"
-      - ".github/workflows/test-docker.yml"
+      - ".github/workflows/test-docker.yaml"
 
 jobs:
   test-docker:
@@ -38,11 +38,11 @@ jobs:
     steps:
       - # get repository code
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
       - name: Build the image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v3
         with:
           context: .
           target: test

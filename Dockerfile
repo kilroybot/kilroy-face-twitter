@@ -12,8 +12,8 @@ RUN python3 -m pip install --no-cache-dir -r /tmp/requirements.txt
 # create new environment
 # see: https://jcristharif.com/conda-docker-tips.html
 # warning: for some reason conda can hang on "Executing transaction" for a couple of minutes
-COPY environment.yml /tmp/environment.yml
-RUN conda env create -f /tmp/environment.yml && \
+COPY environment.yaml /tmp/environment.yaml
+RUN conda env create -f /tmp/environment.yaml && \
     conda clean -afy && \
     find /opt/conda/ -follow -type f -name '*.a' -delete && \
     find /opt/conda/ -follow -type f -name '*.pyc' -delete && \
@@ -26,12 +26,10 @@ SHELL ["conda", "run", "--no-capture-output", "-n", "kilroy-face-twitter", "/bin
 COPY ./kilroy_face_twitter/pyproject.toml ./kilroy_face_twitter/poetry.lock /tmp/kilroy_face_twitter/
 WORKDIR /tmp/kilroy_face_twitter
 
-ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "kilroy-face-twitter"]
-
 FROM base AS test
 
 # install dependencies only (notice that no source code is present yet) and delete cache
-RUN poetry install --no-root --extras test && \
+RUN poetry install --no-root --only main,test && \
     rm -rf ~/.cache/pypoetry
 
 # add source, tests and necessary files
@@ -43,12 +41,13 @@ COPY ./kilroy_face_twitter/LICENSE ./kilroy_face_twitter/README.md /tmp/kilroy_f
 RUN poetry build -f wheel && \
     python -m pip install --no-deps --no-index --no-cache-dir --find-links=dist kilroy-face-twitter
 
-CMD ["pytest"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "kilroy-face-twitter", "pytest"]
+CMD []
 
 FROM base AS production
 
 # install dependencies only (notice that no source code is present yet) and delete cache
-RUN poetry install --no-root && \
+RUN poetry install --no-root --only main && \
     rm -rf ~/.cache/pypoetry
 
 # add source and necessary files
@@ -59,4 +58,5 @@ COPY ./kilroy_face_twitter/LICENSE ./kilroy_face_twitter/README.md /tmp/kilroy_f
 RUN poetry build -f wheel && \
     python -m pip install --no-deps --no-index --no-cache-dir --find-links=dist kilroy-face-twitter
 
-CMD ["kilroy-face-twitter"]
+ENTRYPOINT ["conda", "run", "--no-capture-output", "-n", "kilroy-face-twitter", "kilroy-face-twitter"]
+CMD []

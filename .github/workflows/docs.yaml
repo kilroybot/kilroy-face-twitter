@@ -9,7 +9,7 @@ on:
     # trigger only on changes to the following files
     paths:
       - "kilroy_face_twitter/docs/**"
-      - ".github/workflows/docs.yml"
+      - ".github/workflows/docs.yaml"
 
 # env for all jobs
 env:
@@ -24,15 +24,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Cache packages
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ${{ env.PIP_CACHE_DIR }}
           key: ${{ runner.os }}-pkgs-${{ env.CACHE_NUMBER }}
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: "3.9.7"
       - name: Set up pip cache
