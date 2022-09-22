@@ -60,6 +60,9 @@ async def run(config: Config) -> None:
         done, pending = await asyncio.wait(tasks, return_when=FIRST_EXCEPTION)
     except asyncio.CancelledError:
         done, pending = [], tasks
+    except Exception as e:
+        logger.warning("Unhandled exception.", exc_info=e)
+        done, pending = [], tasks
 
     for task in pending:
         task.cancel()
@@ -67,6 +70,8 @@ async def run(config: Config) -> None:
             await task
         except asyncio.CancelledError:
             pass
+        except Exception as e:
+            logger.warning("Unhandled exception.", exc_info=e)
 
     for task in done:
         task.result()
