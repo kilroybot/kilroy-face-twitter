@@ -1,4 +1,5 @@
 import json
+import logging
 from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
@@ -27,6 +28,8 @@ from kilroy_face_twitter.models import TweetFields, TweetIncludes
 from kilroy_face_twitter.processors import Processor
 from kilroy_face_twitter.scorers import Scorer
 from kilroy_face_twitter.scrapers import Scraper
+
+logger = logging.getLogger(__name__)
 
 
 class Params(SerializableModel):
@@ -222,10 +225,17 @@ class TwitterFace(Categorizable, Face[State], ABC):
         pass
 
     async def post(self, post: Dict[str, Any]) -> UUID:
+        logger.info("Creating new post...")
+
         async with self.state.read_lock() as state:
-            return await state.processor.post(state.client, post)
+            post_id = await state.processor.post(state.client, post)
+
+        logger.info(f"New post id: {str(post_id)}.")
+        return post_id
 
     async def score(self, post_id: UUID) -> float:
+        logger.info(f"Scoring post {str(post_id)}...")
+
         async with self.state.read_lock() as state:
             response = await state.client.v2.get_tweet(
                 post_id.int,
@@ -234,7 +244,10 @@ class TwitterFace(Categorizable, Face[State], ABC):
             )
             tweet = response.data
             includes = TweetIncludes.from_response(response)
-            return await state.scorer.score(state.client, tweet, includes)
+            score = await state.scorer.score(state.client, tweet, includes)
+
+        logger.info(f"Score for post {str(post_id)}: {score}.")
+        return score
 
     @staticmethod
     async def _fetch(
@@ -274,9 +287,14 @@ class TwitterFace(Categorizable, Face[State], ABC):
             else:
                 posts = stream.iterate(posts)
 
+            logger.info("Scraping posts...")
+
             async with posts.stream() as streamer:
                 async for post_id, post, score in streamer:
+                    logger.info(f"Scraped post {str(post_id)}.")
                     yield post_id, post, score
+
+            logger.info("Scraping finished.")
 
 
 class TextOnlyTwitterFace(TwitterFace):
