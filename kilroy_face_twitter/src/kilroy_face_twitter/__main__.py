@@ -5,6 +5,7 @@ This module provides basic CLI entrypoint.
 """
 import asyncio
 import logging
+import signal
 from asyncio import FIRST_EXCEPTION
 from pathlib import Path
 from typing import List, Optional
@@ -20,6 +21,29 @@ from kilroy_face_twitter.face import TwitterFace
 cli = typer.Typer()  # this is actually callable and thus can be an entry point
 
 logger = logging.getLogger(__name__)
+
+
+async def shutdown(sig: signal.Signals, loop: asyncio.AbstractEventLoop):
+    loop.remove_signal_handler(sig)
+    logger.info(f"Received exit signal {sig.name}...")
+    tasks = [
+        task
+        for task in asyncio.all_tasks()
+        if task is not asyncio.current_task()
+    ]
+    logger.info(f"Cancelling {len(tasks)} outstanding tasks...")
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
+    loop.stop()
+
+
+async def attach_signal_handlers() -> None:
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(
+            sig, lambda s=sig: asyncio.create_task(shutdown(s, loop))
+        )
 
 
 async def load_or_init(face: TwitterFace, state_dir: Path) -> None:
@@ -44,6 +68,8 @@ async def load_or_init(face: TwitterFace, state_dir: Path) -> None:
 
 
 async def run(config: Config) -> None:
+    await attach_signal_handlers()
+
     face_type = config.face_type
     face_cls = TwitterFace.for_category(face_type)
     face = await face_cls.build(**config.face.dict())
