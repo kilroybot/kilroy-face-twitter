@@ -37,6 +37,8 @@ mkdocs-material = "^8"
 [tool.poetry.scripts]
 # cli entry point
 kilroy-face-twitter = "kilroy_face_twitter.__main__:cli"
+# fetch model
+kilroy-face-twitter-fetch-model = "kilroy_face_twitter.toxicity:fetch_model"
 
 [tool.black]
 line-length = 79
@@ -117,6 +119,10 @@ cmd = "docker run --rm -it kilroy-face-twitter:test"
 help = "Build and run the docker image for tests"
 ref = "run-docker-tests"
 deps = ["build-docker-tests"]
+
+[tool.poe.tasks.fetch-model]
+help = "Fetch the toxicity model"
+cmd = "kilroy-face-twitter-fetch-model"
 
 [build-system]
 # this should be there, see https://python-poetry.org/docs/pyproject/#poetry-and-pep-517
