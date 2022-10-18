@@ -224,14 +224,14 @@ class TwitterFace(Categorizable, Face[State], ABC):
     async def cleanup(self) -> None:
         pass
 
-    async def post(self, post: Dict[str, Any]) -> UUID:
+    async def post(self, post: Dict[str, Any]) -> Tuple[UUID, Optional[str]]:
         logger.info("Creating new post...")
 
         async with self.state.read_lock() as state:
-            post_id = await state.processor.post(state.client, post)
+            post_id, post_url = await state.processor.post(state.client, post)
 
         logger.info(f"New post id: {str(post_id)}.")
-        return post_id
+        return post_id, post_url
 
     async def score(self, post_id: UUID) -> float:
         logger.info(f"Scoring post {str(post_id)}...")

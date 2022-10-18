@@ -1,7 +1,7 @@
 import json
 from abc import ABC, abstractmethod
 from io import BytesIO
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 from uuid import UUID
 
 from kilroy_face_server_py_sdk import (
@@ -20,7 +20,7 @@ from kilroy_face_server_py_sdk import (
     classproperty,
     normalize,
 )
-from tweepy import Media, Tweet
+from tweepy import Media, Tweet, User
 
 from kilroy_face_twitter.client import TwitterClient
 from kilroy_face_twitter.models import TweetFields, TweetIncludes
@@ -40,9 +40,17 @@ async def upload_image(client: TwitterClient, image: ImageData) -> Media:
         return client.v1.media_upload(file=file, filename=image.filename)
 
 
-async def create_tweet(client: TwitterClient, *args, **kwargs) -> UUID:
+async def create_tweet(
+    client: TwitterClient, *args, **kwargs
+) -> Tuple[UUID, str]:
     response = await client.v2.create_tweet(*args, **kwargs)
-    return UUID(int=Tweet(response.data).id)
+    tweet = Tweet(response.data)
+    response = await client.v2.get_me()
+    user = User(response.data)
+    return (
+        UUID(int=tweet.id),
+        f"https://twitter.com/{user.username}/status/{tweet.id}",
+    )
 
 
 async def get_text_data(tweet: Tweet) -> Optional[TextData]:
@@ -78,7 +86,9 @@ class Processor(Categorizable, ABC):
         return normalize(name.removesuffix("Processor"))
 
     @abstractmethod
-    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
+    async def post(
+        self, client: TwitterClient, post: Dict[str, Any]
+    ) -> Tuple[UUID, str]:
         pass
 
     @abstractmethod
@@ -110,7 +120,9 @@ class TextOnlyProcessor(Processor):
     def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS
 
-    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
+    async def post(
+        self, client: TwitterClient, post: Dict[str, Any]
+    ) -> Tuple[UUID, str]:
         post = TextOnlyPost.parse_obj(post)
         return await create_tweet(client, text=post.text.content)
 
@@ -134,7 +146,9 @@ class ImageOnlyProcessor(Processor):
     def needed_fields(cls) -> TweetFields:
         return IMAGE_FIELDS
 
-    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
+    async def post(
+        self, client: TwitterClient, post: Dict[str, Any]
+    ) -> Tuple[UUID, str]:
         post = ImageOnlyPost.parse_obj(post)
         media = await upload_image(client, post.image)
         return await create_tweet(client, media_ids=[media.media_id])
@@ -159,7 +173,9 @@ class TextAndImageProcessor(Processor):
     def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
+    async def post(
+        self, client: TwitterClient, post: Dict[str, Any]
+    ) -> Tuple[UUID, str]:
         post = TextAndImagePost.parse_obj(post)
         media = await upload_image(client, post.image)
         return await create_tweet(
@@ -187,7 +203,9 @@ class TextOrImageProcessor(Processor):
     def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
+    async def post(
+        self, client: TwitterClient, post: Dict[str, Any]
+    ) -> Tuple[UUID, str]:
         post = TextOrImagePost.parse_obj(post)
         kwargs = {}
         if post.text is not None:
@@ -218,7 +236,9 @@ class TextWithOptionalImageProcessor(Processor):
     def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
+    async def post(
+        self, client: TwitterClient, post: Dict[str, Any]
+    ) -> Tuple[UUID, str]:
         post = TextWithOptionalImagePost.parse_obj(post)
         kwargs = {}
         if post.image is not None:
@@ -247,7 +267,9 @@ class ImageWithOptionalTextProcessor(Processor):
     def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def post(self, client: TwitterClient, post: Dict[str, Any]) -> UUID:
+    async def post(
+        self, client: TwitterClient, post: Dict[str, Any]
+    ) -> Tuple[UUID, str]:
         post = ImageWithOptionalTextPost.parse_obj(post)
         kwargs = {}
         if post.text is not None:
