@@ -21,12 +21,14 @@ from kilroy_face_server_py_sdk import (
     classproperty,
     normalize,
 )
+from kilroy_server_py_utils import CategorizableBasedOptionalParameter
 from tweepy import Tweet
 
 from kilroy_face_twitter.client import TwitterClient
 from kilroy_face_twitter.models import TweetFields, TweetIncludes
 from kilroy_face_twitter.processors import Processor
-from kilroy_face_twitter.scorers import Scorer
+from kilroy_face_twitter.scoring.modifiers import ScoreModifier
+from kilroy_face_twitter.scoring.raw import Scorer
 from kilroy_face_twitter.scrapers import Scraper
 
 logger = logging.getLogger(__name__)
@@ -37,9 +39,11 @@ class Params(SerializableModel):
     consumer_secret: str
     access_token: str
     access_token_secret: str
-    scoring_type: str
+    scoring_type: str = "likes"
     scorers_params: Dict[str, Dict[str, Any]] = {}
-    scraping_type: str
+    score_modifier_type: Optional[str] = None
+    score_modifiers_params: Dict[str, Any] = {}
+    scraping_type: str = "timeline"
     scrapers_params: Dict[str, Dict[str, Any]] = {}
 
 
@@ -48,6 +52,8 @@ class State:
     processor: Processor
     scorer: Scorer
     scorers_params: Dict[str, Dict[str, Any]]
+    score_modifier: Optional[ScoreModifier]
+    score_modifiers_params: Dict[str, Dict[str, Any]]
     scraper: Scraper
     scrapers_params: Dict[str, Dict[str, Any]]
     client: TwitterClient
@@ -56,6 +62,13 @@ class State:
 class ScorerParameter(CategorizableBasedParameter[State, Scorer]):
     async def _get_params(self, state: State, category: str) -> Dict[str, Any]:
         return {**state.scorers_params.get(category, {})}
+
+
+class ScoreModifierParameter(
+    CategorizableBasedOptionalParameter[State, ScoreModifier]
+):
+    async def _get_params(self, state: State, category: str) -> Dict[str, Any]:
+        return {**state.score_modifiers_params.get(category, {})}
 
 
 class ScraperParameter(CategorizableBasedParameter[State, Scraper]):
@@ -87,6 +100,7 @@ class TwitterFace(Categorizable, Face[State], ABC):
     def parameters(cls) -> Set[Parameter]:
         return {
             ScorerParameter(),
+            ScoreModifierParameter(),
             ScraperParameter(),
         }
 
@@ -100,6 +114,20 @@ class TwitterFace(Categorizable, Face[State], ABC):
             Scorer,
             category=params.scoring_type,
             **params.scorers_params.get(params.scoring_type, {}),
+        )
+
+    @classmethod
+    async def _build_score_modifier(
+        cls, params: Params
+    ) -> Optional[ScoreModifier]:
+        if params.score_modifier_type is None:
+            return None
+        return await cls._build_generic(
+            ScoreModifier,
+            category=params.score_modifier_type,
+            **params.score_modifiers_params.get(
+                params.score_modifier_type, {}
+            ),
         )
 
     @classmethod
@@ -125,6 +153,8 @@ class TwitterFace(Categorizable, Face[State], ABC):
             processor=await self._build_processor(),
             scorer=await self._build_scorer(params),
             scorers_params=params.scorers_params,
+            score_modifier=await self._build_score_modifier(params),
+            score_modifiers_params=params.score_modifiers_params,
             scraper=await self._build_scraper(params),
             scrapers_params=params.scrapers_params,
             client=await self._build_client(params),
@@ -141,6 +171,11 @@ class TwitterFace(Categorizable, Face[State], ABC):
             await state.scorer.save(directory / "scorer")
 
     @staticmethod
+    async def _save_score_modifier(state: State, directory: Path) -> None:
+        if isinstance(state.score_modifier, Savable):
+            await state.score_modifier.save(directory / "score_modifier")
+
+    @staticmethod
     async def _save_scraper(state: State, directory: Path) -> None:
         if isinstance(state.scraper, Savable):
             await state.scraper.save(directory / "scraper")
@@ -150,9 +185,13 @@ class TwitterFace(Categorizable, Face[State], ABC):
         return {
             "processor_type": state.processor.category,
             "scorer_type": state.scorer.category,
+            "score_modifier_type": state.score_modifier.category
+            if state.score_modifier is not None
+            else None,
             "scraper_type": state.scraper.category,
             "scorers_params": state.scorers_params,
             "scrapers_params": state.scrapers_params,
+            "score_modifiers_params": state.score_modifiers_params,
         }
 
     @staticmethod
@@ -166,6 +205,7 @@ class TwitterFace(Categorizable, Face[State], ABC):
     async def _save_state(cls, state: State, directory: Path) -> None:
         await cls._save_processor(state, directory)
         await cls._save_scorer(state, directory)
+        await cls._save_score_modifier(state, directory)
         await cls._save_scraper(state, directory)
         state_dict = await cls._create_state_dict(state)
         await cls._save_state_dict(state_dict, directory)
@@ -198,6 +238,19 @@ class TwitterFace(Categorizable, Face[State], ABC):
         )
 
     @classmethod
+    async def _load_score_modifier(
+        cls, directory: Path, state_dict: Dict[str, Any], params: Params
+    ) -> Optional[ScoreModifier]:
+        if state_dict.get("score_modifier_type") is None:
+            return None
+        return await cls._load_generic(
+            directory / "score_modifier",
+            ScoreModifier,
+            category=state_dict["score_modifier_type"],
+            default=partial(cls._build_score_modifier, params),
+        )
+
+    @classmethod
     async def _load_scraper(
         cls, directory: Path, state_dict: Dict[str, Any], params: Params
     ) -> Scraper:
@@ -216,6 +269,10 @@ class TwitterFace(Categorizable, Face[State], ABC):
             processor=await self._load_processor(directory, state_dict),
             scorer=await self._load_scorer(directory, state_dict, params),
             scorers_params=state_dict["scorers_params"],
+            score_modifier=await self._load_score_modifier(
+                directory, state_dict, params
+            ),
+            score_modifiers_params=state_dict["score_modifiers_params"],
             scraper=await self._load_scraper(directory, state_dict, params),
             scrapers_params=state_dict["scrapers_params"],
             client=await self._build_client(params),
@@ -237,14 +294,21 @@ class TwitterFace(Categorizable, Face[State], ABC):
         logger.info(f"Scoring post {str(post_id)}...")
 
         async with self.state.read_lock() as state:
+            fields = state.scorer.needed_fields
+            if state.score_modifier is not None:
+                fields = fields + state.score_modifier.needed_fields
             response = await state.client.v2.get_tweet(
                 post_id.int,
                 user_auth=True,
-                **state.scorer.needed_fields.to_kwargs(),
+                **fields.to_kwargs(),
             )
             tweet = response.data
             includes = TweetIncludes.from_response(response)
             score = await state.scorer.score(state.client, tweet, includes)
+            if state.score_modifier is not None:
+                score = await state.score_modifier.modify(
+                    tweet, includes, score
+                )
 
         logger.info(f"Score for post {str(post_id)}: {score}.")
         return score
@@ -255,10 +319,13 @@ class TwitterFace(Categorizable, Face[State], ABC):
         tweets: AsyncIterable[Tuple[Tweet, TweetIncludes]],
         processor: Processor,
         scorer: Scorer,
+        score_modifier: Optional[ScoreModifier],
     ) -> AsyncIterable[Tuple[UUID, Dict[str, Any], float]]:
         async for tweet, includes in tweets:
             post_id = UUID(int=tweet.id)
             score = await scorer.score(client, tweet, includes)
+            if score_modifier is not None:
+                score = await score_modifier.modify(tweet, includes, score)
 
             try:
                 post = await processor.convert(client, tweet, includes)
@@ -277,10 +344,16 @@ class TwitterFace(Categorizable, Face[State], ABC):
             fields = TweetFields(tweet_fields=["id"])
             fields = fields + state.processor.needed_fields
             fields = fields + state.scorer.needed_fields
+            if state.score_modifier is not None:
+                fields = fields + state.score_modifier.needed_fields
             tweets = state.scraper.scrap(state.client, fields, before, after)
 
             posts = self._fetch(
-                state.client, tweets, state.processor, state.scorer
+                state.client,
+                tweets,
+                state.processor,
+                state.scorer,
+                state.score_modifier,
             )
             if limit is not None:
                 posts = stream.take(posts, limit)
