@@ -34,7 +34,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9.7"
+          python-version: "3.10.6"
       - name: Set up pip cache
         run: python3 -m pip config set global.cache-dir ${{ env.PIP_CACHE_DIR }}
       - name: Install mkdocs

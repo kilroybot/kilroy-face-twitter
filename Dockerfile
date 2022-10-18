@@ -6,17 +6,14 @@ WORKDIR /app/
 
 # install poetry
 COPY ./requirements.txt ./requirements.txt
-RUN python3 -m pip install --no-cache-dir -r ./requirements.txt
+RUN --mount=type=cache,target=/root/.cache \
+    python3 -m pip install -r ./requirements.txt
 
 # create new environment
-# see: https://jcristharif.com/conda-docker-tips.html
 # warning: for some reason conda can hang on "Executing transaction" for a couple of minutes
 COPY environment.yaml ./environment.yaml
-RUN conda env create -f ./environment.yaml && \
-    conda clean -afy && \
-    find /opt/conda/ -follow -type f -name '*.a' -delete && \
-    find /opt/conda/ -follow -type f -name '*.pyc' -delete && \
-    find /opt/conda/ -follow -type f -name '*.js.map' -delete
+RUN --mount=type=cache,target=/opt/conda/pkgs \
+    conda env create -f ./environment.yaml
 
 # "activate" environment for all commands (note: ENTRYPOINT is separate from SHELL)
 SHELL ["conda", "run", "--no-capture-output", "-n", "kilroy-face-twitter", "/bin/bash", "-c"]
@@ -28,9 +25,9 @@ COPY ./kilroy_face_twitter/pyproject.toml ./kilroy_face_twitter/poetry.lock ./
 
 FROM base AS test
 
-# install dependencies only (notice that no source code is present yet) and delete cache
-RUN poetry install --no-root --only main,test && \
-    rm -rf ~/.cache/pypoetry
+# install dependencies only (notice that no source code is present yet)
+RUN --mount=type=cache,target=/root/.cache \
+    poetry install --no-root --only main,test
 
 # add source, tests and necessary files
 COPY ./kilroy_face_twitter/src/ ./src/
@@ -51,9 +48,9 @@ CMD []
 
 FROM base AS production
 
-# install dependencies only (notice that no source code is present yet) and delete cache
-RUN poetry install --no-root --only main && \
-    rm -rf ~/.cache/pypoetry
+# install dependencies only (notice that no source code is present yet)
+RUN --mount=type=cache,target=/root/.cache \
+    poetry install --no-root --only main
 
 # add source and necessary files
 COPY ./kilroy_face_twitter/src/ ./src/
