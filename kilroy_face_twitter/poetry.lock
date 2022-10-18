@@ -121,7 +121,6 @@ mypy-extensions = ">=0.4.3"
 pathspec = ">=0.9.0"
 platformdirs = ">=2"
 tomli = {version = ">=1.1.0", markers = "python_full_version < \"3.11.0a7\""}
-typing-extensions = {version = ">=3.10.0.0", markers = "python_version < \"3.10\""}
 
 [package.extras]
 colorama = ["colorama (>=0.4.3)"]
@@ -357,22 +356,6 @@ optional = false
 python-versions = ">=3.5"
 
 [[package]]
-name = "importlib-metadata"
-version = "5.0.0"
-description = "Read metadata from Python packages"
-category = "dev"
-optional = false
-python-versions = ">=3.7"
-
-[package.dependencies]
-zipp = ">=0.5"
-
-[package.extras]
-docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)"]
-perf = ["ipython"]
-testing = ["flake8 (<5)", "flufl.flake8", "importlib-resources (>=1.3)", "packaging", "pyfakefs", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)", "pytest-perf (>=0.9.2)"]
-
-[[package]]
 name = "iniconfig"
 version = "1.1.1"
 description = "iniconfig: brain-dead simple config-ini parsing"
@@ -412,11 +395,11 @@ format-nongpl = ["fqdn", "idna", "isoduration", "jsonpointer (>1.13)", "rfc3339-
 
 [[package]]
 name = "kilroy-face-py-shared"
-version = "0.5.0"
+version = "0.5.1"
 description = "shared code for kilroy face SDKs in Python 🤝"
 category = "main"
 optional = false
-python-versions = ">=3.9,<4.0"
+python-versions = ">=3.10,<4.0"
 
 [package.dependencies]
 betterproto = ">=2.0.0b5,<3.0.0"
@@ -424,43 +407,31 @@ jsonschema = ">=4.7,<5.0"
 pydantic = ">=1.9,<2.0"
 pyhumps = ">=3.7,<4.0"
 
-[package.extras]
-dev = ["pytest (>=7.0,<8.0)"]
-test = ["pytest (>=7.0,<8.0)"]
-
 [[package]]
 name = "kilroy-face-server-py-sdk"
-version = "0.8.0"
+version = "0.8.1"
 description = "SDK for kilroy face servers in Python 🧰"
 category = "main"
 optional = false
-python-versions = ">=3.9,<4.0"
+python-versions = ">=3.10,<4.0"
 
 [package.dependencies]
 kilroy-face-py-shared = ">=0.5,<0.6"
 kilroy-server-py-utils = ">=0.3,<0.4"
 
-[package.extras]
-dev = ["pytest (>=7.0,<8.0)"]
-test = ["pytest (>=7.0,<8.0)"]
-
 [[package]]
 name = "kilroy-server-py-utils"
-version = "0.3.2"
-description = "utilities for kilroy servers 🔧"
+version = "0.3.3"
+description = "utilities for kilroy servers in Python 🔧"
 category = "main"
 optional = false
-python-versions = ">=3.9,<4.0"
+python-versions = ">=3.10,<4.0"
 
 [package.dependencies]
 fifolock = ">=0.0,<0.1"
 jsonschema = ">=4.7,<5.0"
 pydantic = ">=1.9,<2.0"
 pyhumps = ">=3.7,<4.0"
-
-[package.extras]
-dev = ["pytest (>=7.0,<8.0)"]
-test = ["pytest (>=7.0,<8.0)"]
 
 [[package]]
 name = "Markdown"
@@ -469,9 +440,6 @@ description = "Python implementation of Markdown."
 category = "dev"
 optional = false
 python-versions = ">=3.6"
-
-[package.dependencies]
-importlib-metadata = {version = ">=4.4", markers = "python_version < \"3.10\""}
 
 [package.extras]
 testing = ["coverage", "pyyaml"]
@@ -504,7 +472,6 @@ python-versions = ">=3.7"
 click = ">=7.0"
 colorama = {version = ">=0.4", markers = "platform_system == \"Windows\""}
 ghp-import = ">=1.0"
-importlib-metadata = {version = ">=4.3", markers = "python_version < \"3.10\""}
 jinja2 = ">=2.11.1"
 markdown = ">=3.2.1,<3.4"
 mergedeep = ">=1.3.4"
@@ -1088,22 +1055,10 @@ python-versions = ">=3.7"
 idna = ">=2.0"
 multidict = ">=4.0"
 
-[[package]]
-name = "zipp"
-version = "3.9.0"
-description = "Backport of pathlib-compatible object wrapper for zip files"
-category = "dev"
-optional = false
-python-versions = ">=3.7"
-
-[package.extras]
-docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker (>=1.9)", "sphinx (>=3.5)"]
-testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
-
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.9"
-content-hash = "fa682d71a15889302fbc09ba65b235495755bdd8bfcd727c3afc6282d923bc58"
+python-versions = "^3.10"
+content-hash = "6ad54d155c5fc5cdd4b660604f3926f03fe4076226c93ebf20f0bee09aa7f6d0"
 
 [metadata.files]
 aiohttp = [
@@ -1372,10 +1327,6 @@ idna = [
     {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
     {file = "idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},
 ]
-importlib-metadata = [
-    {file = "importlib_metadata-5.0.0-py3-none-any.whl", hash = "sha256:ddb0e35065e8938f867ed4928d0ae5bf2a53b7773871bfe6bcc7e4fcdc7dea43"},
-    {file = "importlib_metadata-5.0.0.tar.gz", hash = "sha256:da31db32b304314d044d3c12c79bd59e307889b287ad12ff387b3500835fc2ab"},
-]
 iniconfig = [
     {file = "iniconfig-1.1.1-py2.py3-none-any.whl", hash = "sha256:011e24c64b7f47f6ebd835bb12a743f2fbe9a26d4cecaa7f53bc4f35ee9da8b3"},
     {file = "iniconfig-1.1.1.tar.gz", hash = "sha256:bc3af051d7d14b2ee5ef9969666def0cd1a000e121eaea580d4a313df4b37f32"},
@@ -1389,16 +1340,16 @@ jsonschema = [
     {file = "jsonschema-4.16.0.tar.gz", hash = "sha256:165059f076eff6971bae5b742fc029a7b4ef3f9bcf04c14e4776a7605de14b23"},
 ]
 kilroy-face-py-shared = [
-    {file = "kilroy-face-py-shared-0.5.0.tar.gz", hash = "sha256:b7d3a880efdec90bb8746bf1b3c7eb55a36670ebd8f02d763fa7d1871ac639a9"},
-    {file = "kilroy_face_py_shared-0.5.0-py3-none-any.whl", hash = "sha256:cf1919e2f78231e58245ef21dbc85426c890cd79241f12938656266abf5ce68b"},
+    {file = "kilroy-face-py-shared-0.5.1.tar.gz", hash = "sha256:69cd440cb0a439855a8e69f6bc41c92ac15deeffe3dc0d0b61e80e45ceae78ee"},
+    {file = "kilroy_face_py_shared-0.5.1-py3-none-any.whl", hash = "sha256:541095eceb2e325daea605a3b96757493f830f7c980b943b7acb37a126ce6983"},
 ]
 kilroy-face-server-py-sdk = [
-    {file = "kilroy-face-server-py-sdk-0.8.0.tar.gz", hash = "sha256:d8687b723873b55b56e579f2c4f567fdf97f896031b556d8507ee0521a2797e0"},
-    {file = "kilroy_face_server_py_sdk-0.8.0-py3-none-any.whl", hash = "sha256:18c36a2e1cc55e1a3d6078b1e209e3d1960b42273f91c91af1ce74dfea6748d8"},
+    {file = "kilroy-face-server-py-sdk-0.8.1.tar.gz", hash = "sha256:274bf3b5fe92048e321fb681c0f474c80654e66df6692812147c37aa31b9ea21"},
+    {file = "kilroy_face_server_py_sdk-0.8.1-py3-none-any.whl", hash = "sha256:b330168a666c7d5e845c78a6320396e59821e16e0ca76d954c77fe9bb27a595f"},
 ]
 kilroy-server-py-utils = [
-    {file = "kilroy-server-py-utils-0.3.2.tar.gz", hash = "sha256:00599855891d2ee35ae76f72ef1d382d52fc3a77a67636672f9c6fecdcafdd36"},
-    {file = "kilroy_server_py_utils-0.3.2-py3-none-any.whl", hash = "sha256:85348687bbbdfacaa871eb71d0d0d6de61301e20a4a2515d516cb698edf9f760"},
+    {file = "kilroy-server-py-utils-0.3.3.tar.gz", hash = "sha256:e4370b5bbc186b15122dcde3633979347b3a1e9744c8bb4b2e632547d25ba1e9"},
+    {file = "kilroy_server_py_utils-0.3.3-py3-none-any.whl", hash = "sha256:21b1ab03dad27fb2788ca04ff80a8d05132d47e089ff1a9fa4980b8be20cc6f6"},
 ]
 Markdown = [
     {file = "Markdown-3.3.7-py3-none-any.whl", hash = "sha256:f5da449a6e1c989a4cea2631aa8ee67caa5a2ef855d551c88f9e309f4634c621"},
@@ -2055,8 +2006,4 @@ yarl = [
     {file = "yarl-1.8.1-cp39-cp39-win32.whl", hash = "sha256:8b0af1cf36b93cee99a31a545fe91d08223e64390c5ecc5e94c39511832a4bb6"},
     {file = "yarl-1.8.1-cp39-cp39-win_amd64.whl", hash = "sha256:de49d77e968de6626ba7ef4472323f9d2e5a56c1d85b7c0e2a190b2173d3b9be"},
     {file = "yarl-1.8.1.tar.gz", hash = "sha256:af887845b8c2e060eb5605ff72b6f2dd2aab7a761379373fd89d314f4752abbf"},
-]
-zipp = [
-    {file = "zipp-3.9.0-py3-none-any.whl", hash = "sha256:972cfa31bc2fedd3fa838a51e9bc7e64b7fb725a8c00e7431554311f180e9980"},
-    {file = "zipp-3.9.0.tar.gz", hash = "sha256:3a7af91c3db40ec72dd9d154ae18e008c69efe8ca88dde4f9a731bb82fe2f9eb"},
 ]

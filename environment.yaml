@@ -1,4 +1,7 @@
 name: kilroy-face-twitter
+channels:
+  - defaults
+  - conda-forge
 dependencies:
-  - python==3.9.7
-  - pip==21.2.4
+  - python==3.10.6
+  - pip==22.2.2

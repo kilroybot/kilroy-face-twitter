@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kilroy-face-twitter"
-version = "0.5.0"
+version = "0.5.1"
 description = "kilroy face for Twitter 🐦"
 readme = "README.md"
 authors = ["kilroy <kilroymail@pm.me>"]
@@ -10,7 +10,7 @@ repository = "https://github.com/kilroybot/kilroy-face-twitter"
 documentation = "https://kilroybot.github.io/kilroy-face-twitter"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 pydantic =  { version = "^1.10", extras = ["dotenv"] }
 omegaconf = "^2.2"
 typer = { version = "^0.6", extras = ["all"] }
@@ -42,7 +42,7 @@ kilroy-face-twitter-fetch-model = "kilroy_face_twitter.toxicity:fetch_model"
 
 [tool.black]
 line-length = 79
-target-version = ['py39']
+target-version = ['py310']
 
 [tool.poe]
 verbosity = -1
