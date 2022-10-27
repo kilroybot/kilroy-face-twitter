@@ -74,3 +74,8 @@ extra:
 nav:
   - Home: index.md
   - Usage: usage.md
+  - Features:
+      - Processors: features/processors.md
+      - Scrapers: features/scrapers.md
+      - Scorers: features/scorers.md
+      - Score modifiers: features/score-modifiers.md
