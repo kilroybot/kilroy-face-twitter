@@ -68,15 +68,16 @@ jobs:
             ${{ env.PIP_CACHE_DIR }}
           key: ${{ runner.os }}-pkgs-${{ env.CACHE_NUMBER }}
       - name: Set up Python
+        id: python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10.6"
       - name: Set up pip cache
-        run: python3 -m pip config set global.cache-dir ${{ env.PIP_CACHE_DIR }}
+        run: ${{ steps.python.outputs.python-path }} -m pip config set global.cache-dir ${{ env.PIP_CACHE_DIR }}
       - name: Install poetry
-        run: python3 -m pip install -r requirements.txt
+        run: ${{ steps.python.outputs.python-path }} -m pip install -r requirements.txt
       - name: Set up poetry cache
-        run: poetry config cache-dir ${{ env.POETRY_CACHE_DIR }}
+        run: ${{ steps.python.outputs.python-path }} -m poetry config cache-dir ${{ env.POETRY_CACHE_DIR }}
       - # create and activate conda environment
         name: Set up environment
         uses: conda-incubator/setup-miniconda@v2
@@ -88,11 +89,11 @@ jobs:
       - # install only dependencies
         name: Install dependencies
         working-directory: kilroy_face_twitter
-        run: poetry install --no-root --only main,test
+        run: ${{ steps.python.outputs.python-path }} -m poetry install --no-root --only main,test
       - # workaround for non-editable install, waiting for https://github.com/python-poetry/poetry/issues/1382
         name: Build package
         working-directory: kilroy_face_twitter
-        run: poetry build -f wheel
+        run: ${{ steps.python.outputs.python-path }} -m poetry build -f wheel
       - # use pip to install wheel produced in previous step
         name: Install package
         working-directory: kilroy_face_twitter

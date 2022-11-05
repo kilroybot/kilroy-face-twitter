@@ -15,9 +15,9 @@ kilroy face for Twitter 🐦
 
 This `README` provides info about the development process.
 
-For more info about the package itself
-see `kilroy_face_twitter/README.md`
-or [docs](https://kilroybot.github.io/kilroy-face-twitter).
+For more info about the package itself see
+[package `README`](kilroy_face_twitter/README.md) or
+[docs](https://kilroybot.github.io/kilroy-face-twitter).
 
 ## Quickstart (on Ubuntu)
 

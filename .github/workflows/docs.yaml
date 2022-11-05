@@ -32,14 +32,15 @@ jobs:
             ${{ env.PIP_CACHE_DIR }}
           key: ${{ runner.os }}-pkgs-${{ env.CACHE_NUMBER }}
       - name: Set up Python
+        id: python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10.6"
       - name: Set up pip cache
-        run: python3 -m pip config set global.cache-dir ${{ env.PIP_CACHE_DIR }}
+        run: ${{ steps.python.outputs.python-path }} -m pip config set global.cache-dir ${{ env.PIP_CACHE_DIR }}
       - name: Install mkdocs
         working-directory: kilroy_face_twitter/docs
-        run: python3 -m pip install -r requirements.txt
+        run: ${{ steps.python.outputs.python-path }} -m pip install -r requirements.txt
       - name: Deploy docs
         working-directory: kilroy_face_twitter/docs
         run: mkdocs gh-deploy --force
