@@ -3,7 +3,6 @@
 Processors are a way to handle different types of messages.
 They are able to convert between
 internal and external representations of messages.
-They are responsible for creating new Tweets.
 
 There are multiple types of processors available,
 each supporting a different type of message:

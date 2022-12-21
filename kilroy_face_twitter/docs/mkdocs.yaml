@@ -76,6 +76,8 @@ nav:
   - Usage: usage.md
   - Features:
       - Processors: features/processors.md
+      - Posters: features/posters.md
       - Scrapers: features/scrapers.md
       - Scorers: features/scorers.md
       - Score modifiers: features/score-modifiers.md
+      - Restrictions: features/restrictions.md
