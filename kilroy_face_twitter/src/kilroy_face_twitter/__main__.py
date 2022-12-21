@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
-from kilroy_face_server_py_sdk import FaceServer
 from typer import FileText
 
+from kilroy_face_server_py_sdk import FaceServer, FaceService
 from kilroy_face_twitter import log
 from kilroy_face_twitter.config import Config, get_config
 from kilroy_face_twitter.face import TwitterFace
@@ -71,11 +71,12 @@ async def run(config: Config) -> None:
     await attach_signal_handlers()
 
     face_type = config.face_type
+    state_dir = config.state_directory / face_type
+
     face_cls = TwitterFace.for_category(face_type)
     face = await face_cls.build(**config.face.dict())
-    server = FaceServer(face, logger)
-
-    state_dir = config.state_directory / face_type
+    service = FaceService(face, state_dir)
+    server = FaceServer(service, logger)
 
     server_task = asyncio.create_task(server.run(**config.server.dict()))
     init_task = asyncio.create_task(load_or_init(face, state_dir))

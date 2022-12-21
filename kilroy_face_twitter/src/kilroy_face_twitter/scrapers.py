@@ -6,10 +6,11 @@ from kilroy_face_server_py_sdk import Categorizable, classproperty, normalize
 from tweepy import Tweet
 
 from kilroy_face_twitter.client import TwitterClient
-from kilroy_face_twitter.models import TweetFields, TweetIncludes
+from kilroy_face_twitter.data import TweetFields, TweetIncludes
 
 
 class Scraper(Categorizable, ABC):
+    # noinspection PyMethodParameters
     @classproperty
     def category(cls) -> str:
         name: str = cls.__name__

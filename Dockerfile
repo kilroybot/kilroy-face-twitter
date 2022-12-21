@@ -38,8 +38,8 @@ COPY ./kilroy_face_twitter/LICENSE ./kilroy_face_twitter/README.md ./
 RUN poetry build -f wheel && \
     python -m pip install --no-deps --no-index --no-cache-dir --find-links=dist kilroy-face-twitter
 
-RUN --mount=type=cache,target=/root/.cache \
-    kilroy-face-twitter-fetch-model
+ENV TORCH_HOME=/etc/torch
+RUN kilroy-face-twitter-fetch-models
 
 # add entrypoint
 COPY ./entrypoint.sh ./entrypoint.sh
@@ -61,8 +61,8 @@ COPY ./kilroy_face_twitter/LICENSE ./kilroy_face_twitter/README.md ./
 RUN poetry build -f wheel && \
     python -m pip install --no-deps --no-index --no-cache-dir --find-links=dist kilroy-face-twitter
 
-RUN --mount=type=cache,target=/root/.cache \
-    kilroy-face-twitter-fetch-model
+ENV TORCH_HOME=/etc/torch
+RUN kilroy-face-twitter-fetch-models
 
 # add entrypoint
 COPY ./entrypoint.sh ./entrypoint.sh

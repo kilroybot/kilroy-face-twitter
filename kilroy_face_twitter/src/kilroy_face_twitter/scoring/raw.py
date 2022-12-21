@@ -4,10 +4,11 @@ from kilroy_face_server_py_sdk import Categorizable, classproperty, normalize
 from tweepy import Tweet
 
 from kilroy_face_twitter.client import TwitterClient
-from kilroy_face_twitter.models import TweetFields, TweetIncludes
+from kilroy_face_twitter.data import TweetFields, TweetIncludes
 
 
 class Scorer(Categorizable, ABC):
+    # noinspection PyMethodParameters
     @classproperty
     def category(cls) -> str:
         name: str = cls.__name__
@@ -19,6 +20,7 @@ class Scorer(Categorizable, ABC):
     ) -> float:
         pass
 
+    # noinspection PyMethodParameters
     @classproperty
     @abstractmethod
     def needed_fields(cls) -> TweetFields:
@@ -34,6 +36,7 @@ class LikesScorer(Scorer):
     ) -> float:
         return tweet.public_metrics["like_count"]
 
+    # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
         return TweetFields(tweet_fields=["public_metrics"])
@@ -48,6 +51,7 @@ class RetweetsScorer(Scorer):
     ) -> float:
         return tweet.public_metrics["retweet_count"]
 
+    # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
         return TweetFields(tweet_fields=["public_metrics"])
@@ -62,6 +66,7 @@ class ImpressionsScorer(Scorer):
     ) -> float:
         return tweet.non_public_metrics["impression_count"]
 
+    # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
         return TweetFields(tweet_fields=["non_public_metrics"])

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kilroy-face-twitter"
-version = "0.5.1"
+version = "0.6.0"
 description = "kilroy face for Twitter 🐦"
 readme = "README.md"
 authors = ["kilroy <kilroymail@pm.me>"]
@@ -14,10 +14,9 @@ python = "^3.10"
 pydantic =  { version = "^1.10", extras = ["dotenv"] }
 omegaconf = "^2.2"
 typer = { version = "^0.6", extras = ["all"] }
-kilroy-face-server-py-sdk = "~0.8"
+kilroy-face-server-py-sdk = "~0.9"
 tweepy = { version = "^4.10", extras = ["async"] }
 httpx = "^0.23"
-aiostream = "^0.4"
 platformdirs = "^2.5"
 detoxify = "^0.5"
 numpy = "^1.23"
@@ -37,8 +36,8 @@ mkdocs-material = "^8"
 [tool.poetry.scripts]
 # cli entry point
 kilroy-face-twitter = "kilroy_face_twitter.__main__:cli"
-# fetch model
-kilroy-face-twitter-fetch-model = "kilroy_face_twitter.toxicity:fetch_model"
+# fetch models
+kilroy-face-twitter-fetch-models = "kilroy_face_twitter.models:fetch_models"
 
 [tool.black]
 line-length = 79
@@ -120,9 +119,9 @@ help = "Build and run the docker image for tests"
 ref = "run-docker-tests"
 deps = ["build-docker-tests"]
 
-[tool.poe.tasks.fetch-model]
-help = "Fetch the toxicity model"
-cmd = "kilroy-face-twitter-fetch-model"
+[tool.poe.tasks.fetch-models]
+help = "Fetch all used models"
+cmd = "kilroy-face-twitter-fetch-models"
 
 [build-system]
 # this should be there, see https://python-poetry.org/docs/pyproject/#poetry-and-pep-517
