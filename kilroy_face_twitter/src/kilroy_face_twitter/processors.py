@@ -1,8 +1,6 @@
 import json
 from abc import ABC, abstractmethod
-from io import BytesIO
-from typing import Any, Dict, Optional, Tuple
-from uuid import UUID
+from typing import Any, Dict
 
 from kilroy_face_server_py_sdk import (
     Categorizable,
@@ -15,16 +13,12 @@ from kilroy_face_server_py_sdk import (
     TextOnlyPost,
     TextOrImagePost,
     TextWithOptionalImagePost,
-    base64_decode,
-    base64_encode,
     classproperty,
     normalize,
 )
-from tweepy import Media, Tweet, User
 
-from kilroy_face_twitter.client import TwitterClient
-from kilroy_face_twitter.models import TweetFields, TweetIncludes
-from kilroy_face_twitter.utils import download_image, get_filename_from_url
+from kilroy_face_twitter.data import TweetFields
+from kilroy_face_twitter.post import PostData, PostTextData, PostImageData
 
 TEXT_FIELDS = TweetFields(tweet_fields=["text"])
 IMAGE_FIELDS = TweetFields(
@@ -34,74 +28,28 @@ IMAGE_FIELDS = TweetFields(
 )
 
 
-async def upload_image(client: TwitterClient, image: ImageData) -> Media:
-    image_bytes = base64_decode(image.raw)
-    with BytesIO(image_bytes) as file:
-        return client.v1.media_upload(file=file, filename=image.filename)
-
-
-async def create_tweet(
-    client: TwitterClient, *args, **kwargs
-) -> Tuple[UUID, str]:
-    response = await client.v2.create_tweet(*args, **kwargs)
-    tweet = Tweet(response.data)
-    response = await client.v2.get_me()
-    user = User(response.data)
-    return (
-        UUID(int=tweet.id),
-        f"https://twitter.com/{user.username}/status/{tweet.id}",
-    )
-
-
-async def get_text_data(tweet: Tweet) -> Optional[TextData]:
-    if not tweet.text:
-        return
-    return TextData(content=tweet.text)
-
-
-async def get_image_data(
-    tweet: Tweet, includes: TweetIncludes
-) -> Optional[ImageData]:
-    if len(tweet.attachments.get("media_keys", [])) == 0:
-        return None
-    media_key = tweet.attachments["media_keys"][0]
-    try:
-        image_url = next(
-            media.url
-            for media in includes.media
-            if media.media_key == media_key
-        )
-    except StopIteration:
-        return None
-    return ImageData(
-        raw=base64_encode(await download_image(image_url)),
-        filename=get_filename_from_url(image_url),
-    )
-
-
 class Processor(Categorizable, ABC):
+    # noinspection PyMethodParameters
     @classproperty
     def category(cls) -> str:
         name: str = cls.__name__
         return normalize(name.removesuffix("Processor"))
 
     @abstractmethod
-    async def post(
-        self, client: TwitterClient, post: Dict[str, Any]
-    ) -> Tuple[UUID, str]:
+    async def to_external(self, data: PostData) -> Dict[str, Any]:
         pass
 
     @abstractmethod
-    async def convert(
-        self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> Dict[str, Any]:
+    async def to_internal(self, data: Dict[str, Any]) -> PostData:
         pass
 
+    # noinspection PyMethodParameters
     @classproperty
     @abstractmethod
     def needed_fields(cls) -> TweetFields:
         pass
 
+    # noinspection PyMethodParameters
     @classproperty
     @abstractmethod
     def post_schema(cls) -> JSONSchema:
@@ -112,175 +60,184 @@ class Processor(Categorizable, ABC):
 
 
 class TextOnlyProcessor(Processor):
+    # noinspection PyMethodParameters
     @classproperty
     def post_schema(cls) -> JSONSchema:
         return JSONSchema(**TextOnlyPost.schema())
 
+    # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS
 
-    async def post(
-        self, client: TwitterClient, post: Dict[str, Any]
-    ) -> Tuple[UUID, str]:
-        post = TextOnlyPost.parse_obj(post)
-        return await create_tweet(client, text=post.text.content)
-
-    async def convert(
-        self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> Dict[str, Any]:
-        text = await get_text_data(tweet)
-        post = TextOnlyPost(text=text)
+    async def to_external(self, data: PostData) -> Dict[str, Any]:
+        post = TextOnlyPost(text=TextData(content=data.text.content))
         return json.loads(post.json())
+
+    async def to_internal(self, data: Dict[str, Any]) -> PostData:
+        post = TextOnlyPost.parse_obj(data)
+        return PostData(text=PostTextData(content=post.text.content))
 
 
 # Image only
 
 
 class ImageOnlyProcessor(Processor):
+    # noinspection PyMethodParameters
     @classproperty
     def post_schema(cls) -> JSONSchema:
         return JSONSchema(**ImageOnlyPost.schema())
 
+    # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
         return IMAGE_FIELDS
 
-    async def post(
-        self, client: TwitterClient, post: Dict[str, Any]
-    ) -> Tuple[UUID, str]:
-        post = ImageOnlyPost.parse_obj(post)
-        media = await upload_image(client, post.image)
-        return await create_tweet(client, media_ids=[media.media_id])
-
-    async def convert(
-        self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> Dict[str, Any]:
-        image = await get_image_data(tweet, includes)
-        post = ImageOnlyPost(image=image)
+    async def to_external(self, data: PostData) -> Dict[str, Any]:
+        post = ImageOnlyPost(
+            image=ImageData(raw=data.image.raw, filename=data.image.filename)
+        )
         return json.loads(post.json())
+
+    async def to_internal(self, data: Dict[str, Any]) -> PostData:
+        post = ImageOnlyPost.parse_obj(data)
+        return PostData(
+            image=PostImageData(
+                raw=post.image.raw, filename=post.image.filename
+            )
+        )
 
 
 # Text and image
 
 
 class TextAndImageProcessor(Processor):
+    # noinspection PyMethodParameters
     @classproperty
     def post_schema(cls) -> JSONSchema:
         return JSONSchema(**TextAndImagePost.schema())
 
+    # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def post(
-        self, client: TwitterClient, post: Dict[str, Any]
-    ) -> Tuple[UUID, str]:
-        post = TextAndImagePost.parse_obj(post)
-        media = await upload_image(client, post.image)
-        return await create_tweet(
-            client, text=post.text.content, media_ids=[media.media_id]
+    async def to_external(self, data: PostData) -> Dict[str, Any]:
+        post = TextAndImagePost(
+            text=TextData(content=data.text.content),
+            image=ImageData(raw=data.image.raw, filename=data.image.filename),
         )
-
-    async def convert(
-        self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> Dict[str, Any]:
-        text = await get_text_data(tweet)
-        image = await get_image_data(tweet, includes)
-        post = TextAndImagePost(text=text, image=image)
         return json.loads(post.json())
+
+    async def to_internal(self, data: Dict[str, Any]) -> PostData:
+        post = TextAndImagePost.parse_obj(data)
+        return PostData(
+            text=PostTextData(content=post.text.content),
+            image=PostImageData(
+                raw=post.image.raw, filename=post.image.filename
+            ),
+        )
 
 
 # Text or image
 
 
 class TextOrImageProcessor(Processor):
+    # noinspection PyMethodParameters
     @classproperty
     def post_schema(cls) -> JSONSchema:
         return JSONSchema(**TextOrImagePost.schema())
 
+    # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def post(
-        self, client: TwitterClient, post: Dict[str, Any]
-    ) -> Tuple[UUID, str]:
-        post = TextOrImagePost.parse_obj(post)
-        kwargs = {}
-        if post.text is not None:
-            kwargs["text"] = post.text.content
-        if post.image is not None:
-            media = await upload_image(client, post.image)
-            kwargs["media_ids"] = [media.media_id]
-        return await create_tweet(client, **kwargs)
-
-    async def convert(
-        self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> Dict[str, Any]:
-        text = await get_text_data(tweet)
-        image = await get_image_data(tweet, includes)
-        post = TextOrImagePost(text=text, image=image)
+    async def to_external(self, data: PostData) -> Dict[str, Any]:
+        post = TextOrImagePost(
+            text=TextData(content=data.text.content) if data.text else None,
+            image=ImageData(raw=data.image.raw, filename=data.image.filename)
+            if data.image
+            else None,
+        )
         return json.loads(post.json())
+
+    async def to_internal(self, data: Dict[str, Any]) -> PostData:
+        post = TextOrImagePost.parse_obj(data)
+        text = (
+            PostTextData(content=post.text.content)
+            if post.text is not None
+            else None
+        )
+        image = (
+            PostImageData(raw=post.image.raw, filename=post.image.filename)
+            if post.image is not None
+            else None
+        )
+        return PostData(text=text, image=image)
 
 
 # Text with optional image
 
 
 class TextWithOptionalImageProcessor(Processor):
+    # noinspection PyMethodParameters
     @classproperty
     def post_schema(cls) -> JSONSchema:
         return JSONSchema(**TextWithOptionalImagePost.schema())
 
+    # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def post(
-        self, client: TwitterClient, post: Dict[str, Any]
-    ) -> Tuple[UUID, str]:
-        post = TextWithOptionalImagePost.parse_obj(post)
-        kwargs = {}
-        if post.image is not None:
-            media = await upload_image(client, post.image)
-            kwargs["media_ids"] = [media.media_id]
-        return await create_tweet(client, text=post.text.content, **kwargs)
-
-    async def convert(
-        self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> Dict[str, Any]:
-        text = await get_text_data(tweet)
-        image = await get_image_data(tweet, includes)
-        post = TextWithOptionalImagePost(text=text, image=image)
+    async def to_external(self, data: PostData) -> Dict[str, Any]:
+        post = TextWithOptionalImagePost(
+            text=TextData(content=data.text.content),
+            image=ImageData(raw=data.image.raw, filename=data.image.filename)
+            if data.image
+            else None,
+        )
         return json.loads(post.json())
+
+    async def to_internal(self, data: Dict[str, Any]) -> PostData:
+        post = TextWithOptionalImagePost.parse_obj(data)
+        text = PostTextData(content=post.text.content)
+        image = (
+            PostImageData(raw=post.image.raw, filename=post.image.filename)
+            if post.image is not None
+            else None
+        )
+        return PostData(text=text, image=image)
 
 
 # Image with optional text
 
 
 class ImageWithOptionalTextProcessor(Processor):
+    # noinspection PyMethodParameters
     @classproperty
     def post_schema(cls) -> JSONSchema:
         return JSONSchema(**ImageWithOptionalTextPost.schema())
 
+    # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
         return TEXT_FIELDS + IMAGE_FIELDS
 
-    async def post(
-        self, client: TwitterClient, post: Dict[str, Any]
-    ) -> Tuple[UUID, str]:
-        post = ImageWithOptionalTextPost.parse_obj(post)
-        kwargs = {}
-        if post.text is not None:
-            kwargs["text"] = post.text.content
-        media = await upload_image(client, post.image)
-        return await create_tweet(client, media_ids=[media.media_id], **kwargs)
-
-    async def convert(
-        self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
-    ) -> Dict[str, Any]:
-        text = await get_text_data(tweet)
-        image = await get_image_data(tweet, includes)
-        post = ImageWithOptionalTextPost(text=text, image=image)
+    async def to_external(self, data: PostData) -> Dict[str, Any]:
+        post = ImageWithOptionalTextPost(
+            text=TextData(content=data.text.content) if data.text else None,
+            image=ImageData(raw=data.image.raw, filename=data.image.filename),
+        )
         return json.loads(post.json())
+
+    async def to_internal(self, data: Dict[str, Any]) -> PostData:
+        post = ImageWithOptionalTextPost.parse_obj(data)
+        text = (
+            PostTextData(content=post.text.content)
+            if post.text is not None
+            else None
+        )
+        image = PostImageData(raw=post.image.raw, filename=post.image.filename)
+        return PostData(text=text, image=image)
