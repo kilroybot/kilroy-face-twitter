@@ -34,8 +34,9 @@ class Post(SerializableModel):
         image = None
         if tweet.text is not None:
             text = PostTextData(content=tweet.text)
-        if len(tweet.attachments.get("media_keys", [])) > 0:
-            media_key = tweet.attachments["media_keys"][0]
+        media_keys = (tweet.attachments or {}).get("media_keys", [])
+        if len(media_keys) > 0:
+            media_key = media_keys[0]
             try:
                 image_url = next(
                     media.url
