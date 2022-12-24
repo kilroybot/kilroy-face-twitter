@@ -69,7 +69,7 @@ class ToxicityRestriction(Restriction, Configurable[ToxicityRestrictionState]):
     async def _load_saved_state(
         self, directory: Path
     ) -> ToxicityRestrictionState:
-        params = ToxicityRestrictionState(**self._kwargs)
+        params = ToxicityRestrictionParams(**self._kwargs)
         with open(directory / "state.json", "r") as f:
             state_dict = json.load(f)
         return ToxicityRestrictionState(
