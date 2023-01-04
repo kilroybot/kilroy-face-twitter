@@ -42,10 +42,11 @@ class TimelineScraper(Scraper):
         me = response.data
 
         fields = fields + TweetFields(
-            expansions=["author_id"], tweet_fields=["author_id"]
+            expansions=["author_id"],
+            tweet_fields=["author_id", "referenced_tweets", "text"],
         )
 
-        params = {}
+        params = {"exclude": ["retweets", "replies"]}
         if after is not None:
             params["start_time"] = after
         if before is not None:
@@ -59,8 +60,14 @@ class TimelineScraper(Scraper):
             includes = TweetIncludes.from_response(response)
 
             for tweet in response.data or []:
-                if tweet.author_id != me.id:
-                    yield tweet, includes
+                if tweet.author_id == me.id:
+                    continue
+                if tweet.referenced_tweets is not None:
+                    continue
+                if tweet.text is not None and tweet.text.startswith("RT @"):
+                    continue
+
+                yield tweet, includes
 
             if "next_token" not in response.meta:
                 break
