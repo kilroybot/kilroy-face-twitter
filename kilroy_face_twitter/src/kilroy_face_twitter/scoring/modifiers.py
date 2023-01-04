@@ -119,6 +119,8 @@ class ToxicityScoreModifier(
     async def modify(
         self, tweet: Tweet, includes: TweetIncludes, score: float
     ) -> float:
+        if tweet.text is None:
+            return score
         async with self.state.read_lock() as state:
             toxicity = state.detoxify.predict(tweet.text)["toxicity"]
             threshold = state.threshold
