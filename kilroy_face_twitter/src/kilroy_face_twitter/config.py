@@ -35,7 +35,7 @@ class ServerParams(BaseModel):
 
 
 class Config(BaseConfig):
-    face_type: str = "textOrImage"
+    face_type: str = "textOnly"
     face: Params
     server: ServerParams = ServerParams()
     state_directory: Path = CACHE_DIR / "kilroy-face-twitter" / "state"
