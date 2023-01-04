@@ -71,6 +71,10 @@ class TextOnlyProcessor(Processor):
         return TEXT_FIELDS
 
     async def to_external(self, data: PostData) -> Dict[str, Any]:
+        if data.text is None:
+            raise ValueError("Text data is required in this post type.")
+        if data.image is not None:
+            raise ValueError("Image data is not allowed in this post type.")
         post = TextOnlyPost(text=TextData(content=data.text.content))
         return json.loads(post.json())
 
@@ -94,6 +98,10 @@ class ImageOnlyProcessor(Processor):
         return IMAGE_FIELDS
 
     async def to_external(self, data: PostData) -> Dict[str, Any]:
+        if data.text is not None:
+            raise ValueError("Text data is not allowed in this post type.")
+        if data.image is None:
+            raise ValueError("Image data is required in this post type.")
         post = ImageOnlyPost(
             image=ImageData(raw=data.image.raw, filename=data.image.filename)
         )
@@ -123,6 +131,8 @@ class TextAndImageProcessor(Processor):
         return TEXT_FIELDS + IMAGE_FIELDS
 
     async def to_external(self, data: PostData) -> Dict[str, Any]:
+        if data.text is None or data.image is None:
+            raise ValueError("Text and image data are required.")
         post = TextAndImagePost(
             text=TextData(content=data.text.content),
             image=ImageData(raw=data.image.raw, filename=data.image.filename),
@@ -154,6 +164,8 @@ class TextOrImageProcessor(Processor):
         return TEXT_FIELDS + IMAGE_FIELDS
 
     async def to_external(self, data: PostData) -> Dict[str, Any]:
+        if data.text is None and data.image is None:
+            raise ValueError("Either text or image data is required.")
         post = TextOrImagePost(
             text=TextData(content=data.text.content) if data.text else None,
             image=ImageData(raw=data.image.raw, filename=data.image.filename)
@@ -192,6 +204,8 @@ class TextWithOptionalImageProcessor(Processor):
         return TEXT_FIELDS + IMAGE_FIELDS
 
     async def to_external(self, data: PostData) -> Dict[str, Any]:
+        if data.text is None:
+            raise ValueError("Text data is required.")
         post = TextWithOptionalImagePost(
             text=TextData(content=data.text.content),
             image=ImageData(raw=data.image.raw, filename=data.image.filename)
@@ -226,6 +240,8 @@ class ImageWithOptionalTextProcessor(Processor):
         return TEXT_FIELDS + IMAGE_FIELDS
 
     async def to_external(self, data: PostData) -> Dict[str, Any]:
+        if data.image is None:
+            raise ValueError("Image data is required.")
         post = ImageWithOptionalTextPost(
             text=TextData(content=data.text.content) if data.text else None,
             image=ImageData(raw=data.image.raw, filename=data.image.filename),
