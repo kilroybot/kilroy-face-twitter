@@ -29,7 +29,7 @@ from kilroy_face_twitter.posters import Poster, BasicPoster
 from kilroy_face_twitter.processors import Processor
 from kilroy_face_twitter.restrictions import Restriction
 from kilroy_face_twitter.scoring.modifiers import ScoreModifier
-from kilroy_face_twitter.scoring.raw import Scorer, LikesScorer
+from kilroy_face_twitter.scoring.raw import Scorer, RelativeLikesScorer
 from kilroy_face_twitter.scrapers import Scraper, TimelineScraper
 from kilroy_server_py_utils import (
     CategorizableBasedOptionalParameter,
@@ -46,7 +46,7 @@ class Params(SerializableModel):
     access_token_secret: str
     poster_type: str = "basic"
     posters_params: Dict[str, Dict[str, Any]] = {}
-    scorer_type: str = "likes"
+    scorer_type: str = "relativeLikes"
     scorers_params: Dict[str, Dict[str, Any]] = {}
     score_modifier_type: Optional[str] = None
     score_modifiers_params: Dict[str, Dict[str, Any]] = {}
@@ -91,7 +91,7 @@ class ScorerParameter(CategorizableBasedParameter[State, Scorer]):
     # noinspection PyMethodParameters
     @classproperty
     def default_categorizable(cls) -> Type[Scorer]:
-        return LikesScorer
+        return RelativeLikesScorer
 
 
 class ScoreModifierParameter(

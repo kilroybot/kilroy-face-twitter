@@ -30,43 +30,70 @@ class Scorer(Categorizable, ABC):
 # Likes
 
 
-class LikesScorer(Scorer):
+class RelativeLikesScorer(Scorer):
     async def score(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
     ) -> float:
-        return tweet.public_metrics["like_count"]
+        likes = tweet.public_metrics["like_count"]
+        author = next(
+            user for user in includes.users if user.id == tweet.author_id
+        )
+        followers = author.public_metrics["followers_count"]
+        return likes / max(followers, 1)
 
     # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
-        return TweetFields(tweet_fields=["public_metrics"])
+        return TweetFields(
+            expansions=["author_id"],
+            tweet_fields=["public_metrics"],
+            user_fields=["public_metrics"],
+        )
 
 
 # Retweets
 
 
-class RetweetsScorer(Scorer):
+class RelativeRetweetsScorer(Scorer):
     async def score(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
     ) -> float:
-        return tweet.public_metrics["retweet_count"]
+        retweets = tweet.public_metrics["retweet_count"]
+        author = next(
+            user for user in includes.users if user.id == tweet.author_id
+        )
+        followers = author.public_metrics["followers_count"]
+        return retweets / max(followers, 1)
 
     # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
-        return TweetFields(tweet_fields=["public_metrics"])
+        return TweetFields(
+            expansions=["author_id"],
+            tweet_fields=["public_metrics"],
+            user_fields=["public_metrics"],
+        )
 
 
 # Impressions
 
 
-class ImpressionsScorer(Scorer):
+class RelativeImpressionsScorer(Scorer):
     async def score(
         self, client: TwitterClient, tweet: Tweet, includes: TweetIncludes
     ) -> float:
-        return tweet.non_public_metrics["impression_count"]
+        impressions = tweet.non_public_metrics["impression_count"] or 0
+        author = next(
+            user for user in includes.users if user.id == tweet.author_id
+        )
+        followers = author.public_metrics["followers_count"]
+        return impressions / max(followers, 1)
 
     # noinspection PyMethodParameters
     @classproperty
     def needed_fields(cls) -> TweetFields:
-        return TweetFields(tweet_fields=["non_public_metrics"])
+        return TweetFields(
+            expansions=["author_id"],
+            tweet_fields=["non_public_metrics"],
+            user_fields=["public_metrics"],
+        )
